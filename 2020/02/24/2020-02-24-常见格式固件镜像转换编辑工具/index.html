@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="先做记录用，后续继续补充，整理下之前用到过的一些镜像转换、编辑工具，以及一些镜像如何打包gdbserver进行调试（打包gdb的内容移到另一篇了）等，常见情况下其中一两款工具就可以满足需求了，我也是少数情况下某个工具出现问题或者特定环境下换用其它的。">
+<meta name="keywords" content="Winhex,qemu-nhd,guestmount,vmdk,qcow2,vhdx">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2020-02-24-常见格式固件镜像转换编辑工具">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2020&#x2F;02&#x2F;24&#x2F;2020-02-24-%E5%B8%B8%E8%A7%81%E6%A0%BC%E5%BC%8F%E5%9B%BA%E4%BB%B6%E9%95%9C%E5%83%8F%E8%BD%AC%E6%8D%A2%E7%BC%96%E8%BE%91%E5%B7%A5%E5%85%B7&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="先做记录用，后续继续补充，整理下之前用到过的一些镜像转换、编辑工具，以及一些镜像如何打包gdbserver进行调试（打包gdb的内容移到另一篇了）等，常见情况下其中一两款工具就可以满足需求了，我也是少数情况下某个工具出现问题或者特定环境下换用其它的。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-05-03T13:51:16.697Z">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://huhu0706.github.io/2020/02/24/2020-02-24-%E5%B8%B8%E8%A7%81%E6%A0%BC%E5%BC%8F%E5%9B%BA%E4%BB%B6%E9%95%9C%E5%83%8F%E8%BD%AC%E6%8D%A2%E7%BC%96%E8%BE%91%E5%B7%A5%E5%85%B7/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2020-02-24-常见格式固件镜像转换编辑工具 | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2020/02/24/2020-02-24-%E5%B8%B8%E8%A7%81%E6%A0%BC%E5%BC%8F%E5%9B%BA%E4%BB%B6%E9%95%9C%E5%83%8F%E8%BD%AC%E6%8D%A2%E7%BC%96%E8%BE%91%E5%B7%A5%E5%85%B7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2020-02-24-常见格式固件镜像转换编辑工具
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-02-24 20:47:14" itemprop="dateCreated datePublished" datetime="2020-02-24T20:47:14+08:00">2020-02-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-05-03 21:51:16" itemprop="dateModified" datetime="2020-05-03T21:51:16+08:00">2020-05-03</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8F%96%E8%AF%81%E7%9B%B8%E5%85%B3/" itemprop="url" rel="index">
+                    <span itemprop="name">取证相关</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>先做记录用，后续继续补充，整理下之前用到过的一些镜像转换、编辑工具，以及一些镜像如何打包gdbserver进行调试（打包gdb的内容移到另一篇了）等，常见情况下其中一两款工具就可以满足需求了，我也是少数情况下某个工具出现问题或者特定环境下换用其它的。</p>
+</blockquote>
+<a id="more"></a>
+<h2 id="vmdk、qcow2、img、vhdx-vhd-等格式互转工具"><a href="#vmdk、qcow2、img、vhdx-vhd-等格式互转工具" class="headerlink" title="vmdk、qcow2、img、vhdx(vhd)等格式互转工具"></a>vmdk、qcow2、img、vhdx(vhd)等格式互转工具</h2><h3 id="starwind"><a href="#starwind" class="headerlink" title="starwind"></a>starwind</h3><p>Windows平台上运行，基本上常见的格式也都支持，运行傻瓜化，直接选择源文件设定格式导出即可。</p>
+<h3 id="qemu-img"><a href="#qemu-img" class="headerlink" title="qemu-img"></a>qemu-img</h3><p>一般随Qemu一起安装的，Win及Linux都可用，使用命令：<br>qemu-img convert -f qcow2 file.qcow2 -O vmdk file.vmdk</p>
+<h3 id="virtualbox："><a href="#virtualbox：" class="headerlink" title="virtualbox："></a>virtualbox：</h3><p>VBoxManage.exe convertfromraw disk.img disk.vmdk –format VMDK</p>
+<h2 id="镜像编辑加载工具"><a href="#镜像编辑加载工具" class="headerlink" title="镜像编辑加载工具"></a>镜像编辑加载工具</h2><h3 id="guestmount"><a href="#guestmount" class="headerlink" title="guestmount"></a>guestmount</h3><p>ubuntu系统里guestmount是包含在libguestfs-tools里的。<br>guestmount -a xyz.vmdk -m /dev/sda3 –ro /mnt/vmdk<br>或者尝试自动检测格式：<br>guestmount -a xyz.vmdk -i –ro /mnt/vmdk<br>如果需要设置成可读写加载，可以使用 –rw 选项。</p>
+<h3 id="winhex"><a href="#winhex" class="headerlink" title="winhex"></a>winhex</h3><p>最近惊奇的发现最新版本可以识别LVM分区了，使用也比较简单，直接打开IMG格式的磁盘文件，设置目标镜像为磁盘即可，只不过winhex编辑文件不够方便。</p>
+<h3 id="qemu-nhd"><a href="#qemu-nhd" class="headerlink" title="qemu-nhd"></a>qemu-nhd</h3><p>一般常见的磁盘镜像格式通过上述方式就可以加载，但是遇到含有lvm卷的镜像，一般通过qemu-nhd配合mount的方式来加载。<br>sudo  modprobe nbd max_part=16<br>lsmod | grep nbd<br>sudo vgscan<br>sudo lvscan<br>sudo pvscan<br>sudo fdisk -l /dev/nbd0<br>sudo qemu-nbd -c /dev/nbd0    <em>.img -f raw  （-f指定源镜像格式）<br>ls -l /dev/mapper/<br>mount /dev/mapper/rootvg-</em> ./test/<br>sudo qemu-nbd -d /dev/nbd0    （-c 参数为connect，-d为断开连接）<br>sudo umount /dev/mapper/rootvg-* test/</p>
+<h3 id="winmount"><a href="#winmount" class="headerlink" title="winmount"></a>winmount</h3><p>其实这个不怎样常用，只是自己比较喜欢，以前经常使用的压缩软件，由大神刘涛涛出品的，可惜很久就不更新了，这个软件可以直接挂载VMDK格式的Windows磁盘分区。。。操作一些windows的vm比较方便。</p>
+<h2 id="奇形怪状的玩意"><a href="#奇形怪状的玩意" class="headerlink" title="奇形怪状的玩意"></a>奇形怪状的玩意</h2><h3 id="加密的LVM2分区"><a href="#加密的LVM2分区" class="headerlink" title="加密的LVM2分区"></a>加密的LVM2分区</h3><p>这个真是活久见，类似于windows的bitlock驱动器加密。<br><a href="https://www.nowherelan.com/2011/04/18/how-to-mount-an-encrypted-lvm-partition/" target="_blank" rel="noopener">https://www.nowherelan.com/2011/04/18/how-to-mount-an-encrypted-lvm-partition/</a><br><a href="http://blog.gnu-designs.com/solved-howto-mount-an-external-encrypted-luks-volume-under-linux/" target="_blank" rel="noopener">http://blog.gnu-designs.com/solved-howto-mount-an-external-encrypted-luks-volume-under-linux/</a></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://stackoverflow.com/questions/22327728/mounting-vmdk-disk-image" target="_blank" rel="noopener">https://stackoverflow.com/questions/22327728/mounting-vmdk-disk-image</a><br><a href="https://www.jianshu.com/p/6b977c02bfb2" target="_blank" rel="noopener">https://www.jianshu.com/p/6b977c02bfb2</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Winhex/" rel="tag"># Winhex</a>
+              <a href="/tags/qemu-nhd/" rel="tag"># qemu-nhd</a>
+              <a href="/tags/guestmount/" rel="tag"># guestmount</a>
+              <a href="/tags/vmdk/" rel="tag"># vmdk</a>
+              <a href="/tags/qcow2/" rel="tag"># qcow2</a>
+              <a href="/tags/vhdx/" rel="tag"># vhdx</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2019/10/20/2019-10-22-%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%AF%A1%E5%BC%82%E7%9A%84%E8%BF%9B%E7%A8%8B%E5%B4%A9%E6%BA%83%E5%88%86%E6%9E%90/" rel="next" title="2019-10-22-记一次诡异的进程崩溃分析">
+                  <i class="fa fa-chevron-left"></i> 2019-10-22-记一次诡异的进程崩溃分析
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2020/02/24/2020-02-24-%E5%B8%B8%E8%A7%81%E8%AE%BE%E5%A4%87%E5%9B%BA%E4%BB%B6GDB%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA%E5%B0%8F%E8%AE%B0/" rel="prev" title="2020-02-24-常见设备固件GDB调试环境搭建小记">
+                  2020-02-24-常见设备固件GDB调试环境搭建小记 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#vmdk、qcow2、img、vhdx-vhd-等格式互转工具"><span class="nav-number">1.</span> <span class="nav-text">vmdk、qcow2、img、vhdx(vhd)等格式互转工具</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#starwind"><span class="nav-number">1.1.</span> <span class="nav-text">starwind</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#qemu-img"><span class="nav-number">1.2.</span> <span class="nav-text">qemu-img</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#virtualbox："><span class="nav-number">1.3.</span> <span class="nav-text">virtualbox：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#镜像编辑加载工具"><span class="nav-number">2.</span> <span class="nav-text">镜像编辑加载工具</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#guestmount"><span class="nav-number">2.1.</span> <span class="nav-text">guestmount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#winhex"><span class="nav-number">2.2.</span> <span class="nav-text">winhex</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#qemu-nhd"><span class="nav-number">2.3.</span> <span class="nav-text">qemu-nhd</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#winmount"><span class="nav-number">2.4.</span> <span class="nav-text">winmount</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#奇形怪状的玩意"><span class="nav-number">3.</span> <span class="nav-text">奇形怪状的玩意</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#加密的LVM2分区"><span class="nav-number">3.1.</span> <span class="nav-text">加密的LVM2分区</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">4.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">104k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;或许对于大多数人来说，实际中并不需要了解这些理论，能够使用现成的工具就行，但是我个人觉得了解了这些可以将工具使用的更好，更何况理论研究中思维的碰撞也是一种乐趣。  简介&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;彩虹表技术以时空折中理论为基础，即增大存储空间的开销缩短密码破解所需要的时间，时空折中的相关理论在密码学中应用很广，最初是在1980年">
+<meta name="keywords" content="彩虹表,Hash算法">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2013-10-26-彩虹表破解开机密码、MD5算法等的原理">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2013&#x2F;10&#x2F;26&#x2F;2013-10-26-%E5%BD%A9%E8%99%B9%E8%A1%A8%E7%A0%B4%E8%A7%A3%E5%BC%80%E6%9C%BA%E5%AF%86%E7%A0%81%E3%80%81MD5%E7%AE%97%E6%B3%95%E7%AD%89%E7%9A%84%E5%8E%9F%E7%90%86&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;或许对于大多数人来说，实际中并不需要了解这些理论，能够使用现成的工具就行，但是我个人觉得了解了这些可以将工具使用的更好，更何况理论研究中思维的碰撞也是一种乐趣。  简介&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;彩虹表技术以时空折中理论为基础，即增大存储空间的开销缩短密码破解所需要的时间，时空折中的相关理论在密码学中应用很广，最初是在1980年">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-10-25T06:55:13.392Z">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://huhu0706.github.io/2013/10/26/2013-10-26-%E5%BD%A9%E8%99%B9%E8%A1%A8%E7%A0%B4%E8%A7%A3%E5%BC%80%E6%9C%BA%E5%AF%86%E7%A0%81%E3%80%81MD5%E7%AE%97%E6%B3%95%E7%AD%89%E7%9A%84%E5%8E%9F%E7%90%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2013-10-26-彩虹表破解开机密码、MD5算法等的原理 | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2013/10/26/2013-10-26-%E5%BD%A9%E8%99%B9%E8%A1%A8%E7%A0%B4%E8%A7%A3%E5%BC%80%E6%9C%BA%E5%AF%86%E7%A0%81%E3%80%81MD5%E7%AE%97%E6%B3%95%E7%AD%89%E7%9A%84%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2013-10-26-彩虹表破解开机密码、MD5算法等的原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2013-10-26 14:27:43" itemprop="dateCreated datePublished" datetime="2013-10-26T14:27:43+08:00">2013-10-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-10-25 14:55:13" itemprop="dateModified" datetime="2019-10-25T14:55:13+08:00">2019-10-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AF%86%E7%A0%81%E7%AE%97%E6%B3%95/" itemprop="url" rel="index">
+                    <span itemprop="name">密码算法</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;或许对于大多数人来说，实际中并不需要了解这些理论，能够使用现成的工具就行，但是我个人觉得了解了这些可以将工具使用的更好，更何况理论研究中思维的碰撞也是一种乐趣。
+</blockquote>
+<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>&ensp;&ensp;&ensp;&ensp;彩虹表技术以时空折中理论为基础，即增大存储空间的开销缩短密码破解所需要的时间，时空折中的相关理论在密码学中应用很广，最初是在1980年，公钥密码学的提出者之一Hellman针对DES算法提出的一种攻击方式，经过不断地改进，2003年瑞典的Philippe Oechslin 在Making a Faster Cryptanalytic Time-Memory Trade-Off一文中提出了一种高效破解windows开机密码的时空折中算法，并命名为彩虹表，当然当时是针对Windows Xp开机认证的LM-HASH算法。除了破解开机密码，彩虹表目前还应用于散列密码如SHA、MD4、MD5等算法的破译，速度快、效率高、疗效有保证，Philippe的论文中提到：“1.4G的彩虹表可以在13.6s内破解99.9%的数字字母混合型的Windows密码”，具有很强的实用性。
+<a id="more"></a>
+
+<h2 id="彩虹表的原理"><a href="#彩虹表的原理" class="headerlink" title="彩虹表的原理"></a>彩虹表的原理</h2><p>&ensp;&ensp;&ensp;&ensp;设想一下这种情况：你已经拿到了一台服务器的Shell，并且通过HashDump工具获取了主机存储的密码的Hash值，怎么据此得到明文的用户密码搞定管理员权限呢（当然提权方法很多，如直接扔进在线解密网站或是用wce、minikazi之类的工具直接搞到原始明文密码，或者干脆绕过密码提权，这里只是做个示例），有两种很容易想到的方法：一种是字典破解，二是暴力穷举，这两种方式应用的都非常广，字典破解存储常用的用户名密码和其对应的密码Hash值，破解时只需根据需要破解的密码找到对应的明文密码即可，破解速度快，但是破译效率依赖于字典的构造，并且经常需要大量的存储空间存放字典文件；暴力破解法一般比较盲目，常见的形式就是依次计算1-N位字符串的密码值与需破解的密码进行比较，成功率全靠人品。这两种方法分别对空间和时间的要求比较大，久之，人类开始寻找折中的方法，彩虹表就是时空折中的典型，下面我就以彩虹表的生成和查表这两个步骤来介绍彩虹表破解的原理。
+
+<h3 id="造表过程"><a href="#造表过程" class="headerlink" title="造表过程"></a>造表过程</h3><p>&ensp;&ensp;&ensp;&ensp;此处仅介绍彩虹表的原理，对Hellman等人对时空折中算法的研究就不做详细介绍了，有兴趣的可以看一下Hellman在1980年发表的论文：A cryptanalytic time-memory trade-off，对理解彩虹表的构造过程会有很大帮助，Philippe Oechslin这人只是在Hellman的基础上做了稍微改进。
+<p>&ensp;&ensp;&ensp;&ensp;彩虹表实质上还是属于字典破解的一种，不过不再是简单的明文—密码的对应，为了节省字典存储空间，彩虹表省去了能通过计算得出的数据，达到这点的关键在于设计出一个函数族Rk（k=1、2、3、4……）将hash密文空间映射回明文的字符空间。
+<p>&ensp;&ensp;&ensp;&ensp;这么说很高端大气，一般没人听的懂，我当时也没懂神马映射、空间啥的，其实就是把hash密文再按照一定的规则转化成普通字符串的转化函数，例如字符串qshud的32位MD5密文e978c6b019ac22a3fd05b14d36621852，最简单的转化处理就是直接截取第一个字符e。因为e也可能是某些人的口令哦，再对字符e进行32位MD5运算得到密文e1671797c52e15f763380b45e841ec32，再取前两位字符e1，继续MD5运算得到cd3dc8b6cffb41e4163dcbd857ca87da，再取前三位cd3……，这时转换的函数族Rk其实就是截取密文的前k位，k=1、2、3、4…….照此法动作若干次（次数不限、本例为8次），得到5626cf5e6f1093c2840a16512f62c3b5，再取前八个字符 5626cf5e.
+<p>&ensp;&ensp;&ensp;&ensp;好了，下面我们就只需要存储字符串qshud和 5626cf5e就齐活了，刚才中间的字符数据e、e1、cd3… d989670就不用管了，它们属于可以通过qshud计算出的数据，不必进行存储，需要的话稍微花些时间计算即可，亲们必须先记着这种只存储首尾字符串的存储方式，下一节查表过程会继续讲到这种存储如何配合查表过程的。
+<p>&ensp;&ensp;&ensp;&ensp;上一段的例子只是针对MD5算法最简单的一种彩虹表，彩虹表可以处理的hash算法很多，进行的hash运算我们就记为H，函数族Rk（k=1、2、3、4……）都可以自定义，最初开始处理的明文再多选取一些，如图1中第一列的wikipedia、abcdefgh…passwd等，依次计算就得到了图1中的几条字符串链。
+<center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src=图1.jpg>
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">图1 简化的彩虹表造表流程图</div>
+</center>
+<p>&ensp;&ensp;&ensp;&ensp; Ps：一条条的链并列的形状就像是彩虹的色带，这就是彩虹链（表）的由来。
+<p>&ensp;&ensp;&ensp;&ensp; 图1的例子使用的是自定义的R1、R2、R3函数，注意可不是上例提到的截取前几个字符形式的Rk函数，只是为了便于说明图1中的彩虹表虚构出的，具体转换方式不必深究。我们最后存储的只有wikipedia-rootroot、abcdefgh-myname…passwd-linux23，这就是彩虹表造表的大致过程，为了便于说明，示例比较简单，在实际造表中还需要考虑更多的因素，如最重要的Rk系列函数构造、每一条链的长度、造表需要的空间、存储格式等等。
+
+<h3 id="查表过程"><a href="#查表过程" class="headerlink" title="查表过程"></a>查表过程</h3><p>&ensp;&ensp;&ensp;&ensp;如果已经有了上文图一中生成的彩虹表，怎样找到hash函数H的一条密文re3xes对应的明文呢？解释这个破解过程需要明确一点：如果re3xes对应的明文属于彩虹表中的某条链，那么就有可能找到其对应的明文，注意这里的“属于某条链”不仅仅是指属于彩虹表的一条链中存放的头尾两个字符串，还包括这两个字符串中的中间数据，图一中中间计算的明文数据secret、jimbo也算是属于彩虹表的第一条链中，同理bernie、zurich属于第二条链，culture、crypto属于最后一条链，虽然彩虹表中只保存了每条链的链首链尾两个字符串，但是这些中间数据是可以根据链首字符串重新计算出来的。来看一下re3xes的破解过程，先猜测下密码re3xes对应的明文数据是某条链中间计算出数据的最后一个，注意第一、二条链的中间数据中的最后一个明文口令jimbo、zurich，依次经过H-R3运算得到保存的链尾字符串rootroot、myname，那么密文re3xes经过R3转换之后得到的数据就是某条链的链尾字符串，这点应该不难理解，如密文v0d$x对应的明文jimbo是第一条链最后一个中间明文数据，则v0d$x经过R3转换得到链尾字符串rootroot，但是密文re3xes经过R3函数转换之后得到的rambo并不是表中保存的任一条链的链尾字符串，这就说明re3xes对应的明文数据并不是某条链中间计算出数据的最后一个，猜测不成立，继续猜测re3xes对应的明文数据可能是某条链中间计算出数据的倒数第二个，同样可以很容易推出re3xes依次经过R2-H-R3转换之后得到的数据是某条链的链尾字符串，计算出re3xes经R2-H-R3转换的结果为linux23，通过搜索彩虹中存放的链尾字符串，得到linux23恰好是最后一条链的链尾，O(∩_∩)O~，到了这一步已经成功了一大半，下面就来根据存储的最后一条链链首的passwd重新计算出密文re3xes对应的明文吧，既然re3xes经R2-H-R3转换之后得到链尾的linux23，那么链首的passwd经H-R1-H运算后的结果culture就是re3xes对应的明文啦，小功告成~(≧▽≦)/~，流程图见下图2。
+<center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src=图2.jpg>
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">图2 彩虹表破解密码示意图</div>
+</center>
+<p>&ensp;&ensp;&ensp;&ensp;注意：经过这种运算能得到链尾字符串的话只是成功了大半，还是有一小半人品不好的情况额，如果Rk函数设计的不好，存在一个密文字串qshud和re3xes经过R2-H-R3运算后都能得到linux23，那么在破解密文qshud的时候也会得出明文为culture，这种错误的情况称为“假警”，因为实际应用中的数据量都比较大，所以出现这种情况也是很正常的，这是只需要简单计算一下hash验证下即可，从另一个角度看数据量大的同时也能保证彩虹表的明文覆盖率更大，破解效果更好，出现“假警”情况的话就继续查表过程直至找到正确的明文或是找完整个表也没找到明文╮(╯_╰)╭……
+<p>&ensp;&ensp;&ensp;&ensp;ps：彩虹表类似于用大量随机字符串来保证对明文的覆盖率，所以Rk系列函数的构造直接影响能破解密码的范围。
+
+<h2 id="彩虹表的不足与改进"><a href="#彩虹表的不足与改进" class="headerlink" title="彩虹表的不足与改进"></a>彩虹表的不足与改进</h2><h3 id="不足：加盐情况处理不好"><a href="#不足：加盐情况处理不好" class="headerlink" title="不足：加盐情况处理不好"></a>不足：加盐情况处理不好</h3><p>&ensp;&ensp;&ensp;&ensp;现在很多加密方法计算密码Hash时，会在待处理的明文字符串后面加上一串随机的字符串再进行加密操作，开始密码验证时会先在用户输入的密码后加上相同的随机字串进行加密，结果再与存储的Hash进行比较。如明文口令是qshud，则附加上一段随机字符串再计算hash，正确口令的hash存储时也是这样的处理过程，这样做的一个好处就是可以在一定程度上防止彩虹表破译，假设随机字符串为“！@#￥”之类的特殊符号，在造表的过程中设计R函数就需要考虑到映射回这些特殊符号，这就大大增大了造表的空间和难度。
+
+<h3 id="不足：不能保证100-破解"><a href="#不足：不能保证100-破解" class="headerlink" title="不足：不能保证100%破解"></a>不足：不能保证100%破解</h3><p>&ensp;&ensp;&ensp;&ensp;造表过程中可以很明显的看出，只有明文字符串属于彩虹表的某条链上才能保证这条明文对应的Hash可以被破解，然而设计的再好也不能保证能够破解所有对应的Hash密码，实际中破解率99%以上就已经很实用了。
+
+<h3 id="改进：破解率100-的雷表"><a href="#改进：破解率100-的雷表" class="headerlink" title="改进：破解率100%的雷表"></a>改进：破解率100%的雷表</h3><p>&ensp;&ensp;&ensp;&ensp;上文已经提到了破解的效率并不能达到100%，而雷表就是对这点的改进，据称可以达到100%的破译，但是涉及的技术会更加复杂。目前这项技术还未被公开，网上也找不到详细的介绍。
+
+<h3 id="改进：显卡并行编程加速造表过程"><a href="#改进：显卡并行编程加速造表过程" class="headerlink" title="改进：显卡并行编程加速造表过程"></a>改进：显卡并行编程加速造表过程</h3><p>&ensp;&ensp;&ensp;&ensp;利用显卡多核的特点，设计并行的造表算法（CUDA并行编程），一般情况下能将造表速度提至7倍（以我一个很水的实现为起点~囧）或更高。
+
+<h2 id="彩虹表下载及相关工具"><a href="#彩虹表下载及相关工具" class="headerlink" title="彩虹表下载及相关工具"></a>彩虹表下载及相关工具</h2><h3 id="免费彩虹表下载："><a href="#免费彩虹表下载：" class="headerlink" title="免费彩虹表下载："></a>免费彩虹表下载：</h3><p>&ensp;&ensp;&ensp;&ensp;Free Rainbow Tables：http://www.freerainbowtables.com/en/tables/，提供了LM、NTLM、MD5、SHA1等彩虹表下载。
+
+<h3 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h3><p>&ensp;&ensp;&ensp;&ensp;Opcrack：有自己独特的彩虹表结构，支持LM，NTLM破解。
+<p>&ensp;&ensp;&ensp;&ensp;RainbowCrack：可以自己造表，支持LM, NTLM, MD5, SHA1, MYSQLSHA1,              HALFLMCHALL, NTLMCHALL的破解。
+<p>&ensp;&ensp;&ensp;&ensp;Cain：由Oxid.it开发的一个针对Microsoft操作系统的免费口令恢复工具。号称穷人使用的L0phtcrack……
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%BD%A9%E8%99%B9%E8%A1%A8/" rel="tag"># 彩虹表</a>
+              <a href="/tags/Hash%E7%AE%97%E6%B3%95/" rel="tag"># Hash算法</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2013/08/07/2013-08-07-HeapSpray-Rop%E7%BB%95%E8%BF%87IE8%E7%9A%84DEP%E9%98%B2%E6%8A%A4-%E5%A0%86%E5%96%B7%E5%B0%84%E6%8A%80%E6%9C%AF%E5%88%A9%E7%94%A8%E8%B6%85%E6%98%9F%E8%80%81%E6%BC%8F%E6%B4%9E/" rel="next" title="2013-08-07-HeapSpray+Rop绕过IE8的DEP防护--堆喷射技术利用超星老漏洞">
+                  <i class="fa fa-chevron-left"></i> 2013-08-07-HeapSpray+Rop绕过IE8的DEP防护--堆喷射技术利用超星老漏洞
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2014/01/05/2014-01-05-%E9%80%86%E5%90%91%E7%AC%94%E8%AE%B0%E3%80%90%E5%A3%B9%E3%80%91/" rel="prev" title="2014-01-05-逆向笔记【壹】">
+                  2014-01-05-逆向笔记【壹】 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#彩虹表的原理"><span class="nav-number">2.</span> <span class="nav-text">彩虹表的原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#造表过程"><span class="nav-number">2.1.</span> <span class="nav-text">造表过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#查表过程"><span class="nav-number">2.2.</span> <span class="nav-text">查表过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#彩虹表的不足与改进"><span class="nav-number">3.</span> <span class="nav-text">彩虹表的不足与改进</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#不足：加盐情况处理不好"><span class="nav-number">3.1.</span> <span class="nav-text">不足：加盐情况处理不好</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#不足：不能保证100-破解"><span class="nav-number">3.2.</span> <span class="nav-text">不足：不能保证100%破解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#改进：破解率100-的雷表"><span class="nav-number">3.3.</span> <span class="nav-text">改进：破解率100%的雷表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#改进：显卡并行编程加速造表过程"><span class="nav-number">3.4.</span> <span class="nav-text">改进：显卡并行编程加速造表过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#彩虹表下载及相关工具"><span class="nav-number">4.</span> <span class="nav-text">彩虹表下载及相关工具</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#免费彩虹表下载："><span class="nav-number">4.1.</span> <span class="nav-text">免费彩虹表下载：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#工具："><span class="nav-number">4.2.</span> <span class="nav-text">工具：</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">104k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="看雪的安卓培训网课例子动手做了一遍，记录下Frida辅助分析OLLVM混淆的相关方法，，（自己记录总结备忘用的，详细的讲解还是推荐去听看雪的课，附件先暂不提供下载）。">
+<meta name="keywords" content="Frida">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2020-06-05-Frida辅助分析OLLVM混淆的算法">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2020&#x2F;06&#x2F;05&#x2F;2020-06-05-Frida%E8%BE%85%E5%8A%A9%E5%88%86%E6%9E%90OLLVM%E6%B7%B7%E6%B7%86%E7%9A%84%E7%AE%97%E6%B3%95&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="看雪的安卓培训网课例子动手做了一遍，记录下Frida辅助分析OLLVM混淆的相关方法，，（自己记录总结备忘用的，详细的讲解还是推荐去听看雪的课，附件先暂不提供下载）。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-01-11T13:18:36.344Z">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://huhu0706.github.io/2020/06/05/2020-06-05-Frida%E8%BE%85%E5%8A%A9%E5%88%86%E6%9E%90OLLVM%E6%B7%B7%E6%B7%86%E7%9A%84%E7%AE%97%E6%B3%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2020-06-05-Frida辅助分析OLLVM混淆的算法 | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2020/06/05/2020-06-05-Frida%E8%BE%85%E5%8A%A9%E5%88%86%E6%9E%90OLLVM%E6%B7%B7%E6%B7%86%E7%9A%84%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2020-06-05-Frida辅助分析OLLVM混淆的算法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-06-05 07:53:20" itemprop="dateCreated datePublished" datetime="2020-06-05T07:53:20+08:00">2020-06-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-11 21:18:36" itemprop="dateModified" datetime="2021-01-11T21:18:36+08:00">2021-01-11</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%A7%BB%E5%8A%A8%E7%BB%88%E7%AB%AF/" itemprop="url" rel="index">
+                    <span itemprop="name">移动终端</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>21k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>19 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>看雪的安卓培训网课例子动手做了一遍，记录下Frida辅助分析OLLVM混淆的相关方法，，（自己记录总结备忘用的，详细的讲解还是推荐去听看雪的课，附件先暂不提供下载）。</p>
+</blockquote>
+<a id="more"></a>
+<h2 id="L4：-Frida-辅助分析OLLVM字符串混淆"><a href="#L4：-Frida-辅助分析OLLVM字符串混淆" class="headerlink" title="L4： Frida 辅助分析OLLVM字符串混淆"></a>L4： Frida 辅助分析OLLVM字符串混淆</h2><p>hook_l4.js:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br></pre></td><td class="code"><pre><span class="line">function print_str(addr)</span><br><span class="line">&#123;</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var addr_str = base_libjni.add(addr);</span><br><span class="line">    console.log(&quot;str:&quot;,addr_str,ptr(addr_str).readCString());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native_001()</span><br><span class="line">&#123;</span><br><span class="line">    //v6 = off_33D60,</span><br><span class="line">    print_str(0x37070);</span><br><span class="line">    print_str(0x37080);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    print_str(0x37010);</span><br><span class="line">    print_str(0x37050);</span><br><span class="line">    print_str(0x370A8);</span><br><span class="line">    print_str(0x370C0);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native_002()</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    // *(_QWORD *)&amp;v6 = byte_3E1BA;</span><br><span class="line">    // *((_QWORD *)&amp;v6 + 1) = sub_6E4C;</span><br><span class="line">    // *(_QWORD *)&amp;xmmword_3E1E8 = &amp;dword_3E1B4;</span><br><span class="line">    // *(__int128 *)((char *)&amp;xmmword_3E1E8 + 8) = v6;</span><br><span class="line">    print_str(0x3E1B4);</span><br><span class="line">    print_str(0x3E1BA);</span><br><span class="line">&#125;</span><br><span class="line">function hook_libart()</span><br><span class="line">&#123;</span><br><span class="line">    //symbol   (no checkjni)</span><br><span class="line">    var module_libart = Process.findModuleByName(&quot;libart.so&quot;);</span><br><span class="line">    //or?const hooks = Module.load(&apos;libc.so&apos;);   var Symbol = hooks.enumerateSymbols();</span><br><span class="line">    var symbols = module_libart.enumerateSymbols();</span><br><span class="line">    </span><br><span class="line">    var addr_GetStringUTFChars = null;</span><br><span class="line">    var addr_FindClass = null;</span><br><span class="line">    var addr_GetStaticFieldID = null;</span><br><span class="line">    var addr_SetStaticIntField = null;</span><br><span class="line">    var addr_RegisterNatives = null;</span><br><span class="line"></span><br><span class="line">    for(var i = 0; i &lt; symbols.length;i++)</span><br><span class="line">    &#123;</span><br><span class="line">        if (symbols[i].name.indexOf(&quot;art&quot;) != -1) &#123;</span><br><span class="line">            if (symbols[i].name.indexOf(&quot;CheckJNI&quot;) == -1) &#123;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;GetStringUTFChars&quot;) != -1) &#123;</span><br><span class="line">                    addr_GetStringUTFChars = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_GetStringUTFChars);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;art3JNI9FindClass&quot;) != -1) &#123;</span><br><span class="line">                    addr_FindClass = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_FindClass);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;GetStaticFieldID&quot;) != -1) &#123;</span><br><span class="line">                    addr_GetStaticFieldID = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_GetStaticFieldID);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;SetStaticIntField&quot;) != -1) &#123;</span><br><span class="line">                    addr_SetStaticIntField = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_SetStaticIntField);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;RegisterNatives&quot;) != -1) &#123;</span><br><span class="line">                    addr_RegisterNatives = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_RegisterNatives);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //print str </span><br><span class="line">    </span><br><span class="line">    // //print so stack  :  FUZZY and ACCURATE</span><br><span class="line">    // if (addr_GetStringUTFChars) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_GetStringUTFChars,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             // console.log(&apos;addr_GetStringUTFChars onEnter called from:\n&apos; +</span><br><span class="line">    //             //     Thread.backtrace(this.context, Backtracer.FUZZY)</span><br><span class="line">    //             //         .map(DebugSymbol.fromAddress).join(&apos;\n&apos;) + &apos;\n&apos;);</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //             console.log(&quot;GetStringUTFChars:&quot;,ptr(retval).readCString())</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_FindClass) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_FindClass,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;FindClass Arg:&quot;, ptr(args[1]).readCString());</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_GetStaticFieldID) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_GetStaticFieldID,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;GetStaticFieldID Arg3:&quot;, ptr(args[2]).readCString(),&quot;Arg4:&quot;,ptr(args[3]).readCString());</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_SetStaticIntField) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_SetStaticIntField,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;SetStaticIntField Arg4:&quot;,args[3]);</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    // //hook findclass getstaticfiledid </span><br><span class="line">    if (addr_RegisterNatives) &#123;</span><br><span class="line">        Interceptor.attach(addr_RegisterNatives,&#123;</span><br><span class="line">            onEnter : function(args)&#123;</span><br><span class="line">                console.log(&quot;addr_RegisterNatives:\n&quot;,hexdump(args[2]));</span><br><span class="line">                console.log(&quot;addr_RegisterNatives name:&quot;,ptr(args[2]).readPointer().readCString());</span><br><span class="line">                console.log(&quot;addr_RegisterNatives sign:&quot;,ptr(args[2]).add(Process.pointerSize).readPointer().readCString());</span><br><span class="line">            &#125;,</span><br><span class="line">            onLeave : function(retval)&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line">function inline_hook()</span><br><span class="line">&#123;</span><br><span class="line">    //arm64稳定  arm32不稳定，x32可能会有2字节的thumb指令</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    console.log(&quot;base_libjni&quot;,base_libjni);</span><br><span class="line">    if (base_libjni != null) &#123;</span><br><span class="line">        var addr_hook = base_libjni.add(0x7320);</span><br><span class="line">        Interceptor.attach(addr_hook,&#123;</span><br><span class="line">            onEnter : function (args)&#123;</span><br><span class="line">                //w13 x13</span><br><span class="line">                console.log(&quot;xor:&quot;,this.context.x13);</span><br><span class="line">            &#125;,</span><br><span class="line">            onLeave : function(retval)&#123;</span><br><span class="line">                </span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_dlopen()</span><br><span class="line">&#123;</span><br><span class="line">    //android 6.0</span><br><span class="line">    var addr_dlopen = Module.findExportByName(null,&quot;dlopen&quot;);</span><br><span class="line">    Interceptor.attach(addr_dlopen,&#123;</span><br><span class="line">        onEnter : function (args)&#123;</span><br><span class="line">            this.flag = false;</span><br><span class="line">            var dlopen_name = ptr(args[0]).readCString();</span><br><span class="line">            console.log(&quot;android_dlopen_ext:&quot;,dlopen_name);</span><br><span class="line">            if(dlopen_name.indexOf(&quot;libhello-jni.so&quot;) &gt;= 0)&#123;</span><br><span class="line">                this.flag = true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave : function(retval)&#123;</span><br><span class="line">            if(this.flag)&#123;</span><br><span class="line">                inline_hook();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    // 高版本Android系统</span><br><span class="line">    var addr_android_dlopen_ext = Module.findExportByName(null,&quot;android_dlopen_ext&quot;);</span><br><span class="line">    Interceptor.attach(addr_android_dlopen_ext,&#123;</span><br><span class="line">        onEnter : function (args)&#123;</span><br><span class="line">            this.flag = false;</span><br><span class="line">            var dlopen_name = ptr(args[0]).readCString();</span><br><span class="line">            console.log(&quot;android_dlopen_ext:&quot;,dlopen_name);</span><br><span class="line">            if(dlopen_name.indexOf(&quot;libhello-jni.so&quot;) &gt;= 0)&#123;</span><br><span class="line">                this.flag = true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave : function(retval)&#123;</span><br><span class="line">            if(this.flag)&#123;</span><br><span class="line">                inline_hook();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_dlopen()</span><br><span class="line">    hook_libart()</span><br><span class="line">    //hook_native_001();</span><br><span class="line">    //hook_native_002();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
+<h2 id="L5-Frida-辅助分析OLLVM-控制流平坦化"><a href="#L5-Frida-辅助分析OLLVM-控制流平坦化" class="headerlink" title="L5: Frida 辅助分析OLLVM 控制流平坦化"></a>L5: Frida 辅助分析OLLVM 控制流平坦化</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br></pre></td><td class="code"><pre><span class="line">function hook_java() &#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        var hello_jni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">        hello_jni.sign2.implementation = function(str,str2)&#123;</span><br><span class="line">            var ret = this.sign2(str,str2);</span><br><span class="line">            console.log(&quot;sign2 arg1:&quot;,str,&quot;arg2:&quot;,str2,&quot;ret:&quot;,ret);</span><br><span class="line">            return ret;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    //设置固定值注定调用</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                console.log(&quot;instance:&quot;,instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;))</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)</span><br><span class="line">            &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native() &#123;</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sub_13558 = base_libjni.add(0x13558);</span><br><span class="line">    //根据输入及返回结果交叉引用，首要分析sub函数。</span><br><span class="line">    // Interceptor.attach(sub_13558,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         console.log(&quot;sub_13558 OnEnter: arg1=&quot;,ptr(args[1]).readCString(),&quot;arg2=&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_13558 onLeave: arg0=&quot;,ptr(this.arg0).add(1).readCString());</span><br><span class="line">    //         console.log(&quot;sub_13558 onLeave: retval=&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    // var sub_12D70 = base_libjni.add(0x12D70);</span><br><span class="line">    // Interceptor.attach(sub_12D70,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.str1 = args[0];</span><br><span class="line">    //         this.str2 = args[1];</span><br><span class="line">    //         this.v51 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_12D70 arg0:&quot;,ptr(args[0]).add(1).readCString(),&quot;arg1:&quot;,ptr(args[1]).add(1).readCString(),&quot;\n&quot;);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_12D70 ret arg0:&quot;,ptr(this.str1).add(1).readCString(),&quot;arg1:&quot;,ptr(this.str2).add(1).readCString(),&quot;\n&quot;);</span><br><span class="line">    //         console.log(&quot;sub_12D70 ret arg2:\n&quot;,hexdump(ptr(this.v51).readPointer()));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_162b8 = base_libjni.add(0x162b8);</span><br><span class="line">    // Interceptor.attach(sub_162b8,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_162b8 arg0:\n&quot;,ptr(args[0]).readCString(),&quot;\narg1:\n&quot;,args[1],&quot;\n&quot;);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         //console.log(&quot;sub_162b8 ret arg0:&quot;,hexdump(this.arg0),&quot;arg1:&quot;,hexdump(this.arg1),&quot;\n&quot;);</span><br><span class="line">    //         console.log(&quot;sub_162b8 ret arg2:\n&quot;,ptr(this.arg2).readLong());      </span><br><span class="line">            </span><br><span class="line">    //         console.log(&quot;sub_162b8 retval\n&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_130F0 = base_libjni.add(0x130F0);</span><br><span class="line">    // Interceptor.attach(sub_130F0,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         console.log(&quot;sub_130F0 arg0:\n&quot;,hexdump(args[0],&#123; offset: 0, length: 64, header: true, ansi: true &#125;),&quot;\narg1:\n&quot;,ptr(args[1]).readCString(),&quot;\narg2:\n&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_130F0 ret arg0:\n&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_154D4 = base_libjni.add(0x154D4);</span><br><span class="line">    Interceptor.attach(sub_154D4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            this.arg2 = args[2];</span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg2=&quot;,args[2]);</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_154D4 OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_14844 = base_libjni.add(0x14844);</span><br><span class="line">    Interceptor.attach(sub_14844,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_14844 OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_14844 OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_14844 OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_14844 OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_158AC = base_libjni.add(0x158AC);</span><br><span class="line">    Interceptor.attach(sub_158AC,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_158AC OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">            console.log(&quot;sub_158AC OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_158AC OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;)); </span><br><span class="line">            console.log(&quot;sub_158AC OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_15F1C = base_libjni.add(0x15F1C);</span><br><span class="line">    // Interceptor.attach(sub_15F1C,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_15F1C OnEnter: arg0=&quot;,ptr(args[0]).readCString(),&quot;arg1=&quot;,args[1],&quot;arg2=&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_15F1C OnLeave: arg2=\n&quot;,hexdump(this.arg2,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main() &#123;</span><br><span class="line">    hook_java()</span><br><span class="line">    hook_native();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setImmediate(main);</span><br></pre></td></tr></table></figure>
+
+<h2 id="L6-1：-Frida-辅助分析OLLVM-指令替换"><a href="#L6-1：-Frida-辅助分析OLLVM-指令替换" class="headerlink" title="L6.1： Frida 辅助分析OLLVM 指令替换"></a>L6.1： Frida 辅助分析OLLVM 指令替换</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br></pre></td><td class="code"><pre><span class="line">function hook_java()</span><br><span class="line">&#123;</span><br><span class="line">    // Java.perform(function()&#123;</span><br><span class="line">    //     var hellojni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">    //     hellojni.sign2.implementation = function(str1,str2)&#123;</span><br><span class="line">    //         var ret = this.sign2(str1,str2);</span><br><span class="line">    //         console.log(&quot;sign2: arg1=&quot;,str1,&quot; arg2=&quot;,str2,&quot; ret=&quot;,ret);</span><br><span class="line">    //         return ret;</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;)</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)</span><br><span class="line">            &#123;</span><br><span class="line">                </span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native()</span><br><span class="line">&#123;</span><br><span class="line">    var libjni_base = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sign2 = Module.findExportByName(&quot;libhello-jni.so&quot;,&quot;Java_com_example_hellojni_HelloJni_sign2&quot;);</span><br><span class="line">    console.log(&quot;base:&quot;,libjni_base,&quot;sign2:&quot;,sign2);</span><br><span class="line">    Interceptor.attach(sign2,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.str1 = args[2];</span><br><span class="line">            this.str2 = args[3];</span><br><span class="line">            //https://github.com/frida/frida-java-bridge/search?q=GetStringUTFChars&amp;unscoped_q=GetStringUTFChars</span><br><span class="line">            console.log(&quot;Native: str1=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(this.str1)).readCString(),&quot; str2=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(this.str2)).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;Native: retval=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(retval)).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1DFB4 = libjni_base.add(0x1DFB4);</span><br><span class="line">    // Interceptor.attach(sub_1DFB4,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         //ida 里面可能识别的不对，需要分析下参数传递是否正确</span><br><span class="line">    //         //void __usercall sub_1DFB4(_QWORD *a1@&lt;X0&gt;, _QWORD *a2@&lt;X1&gt;)</span><br><span class="line">    //         console.log(&quot;sub_1DFB4 onEnter: str1=&quot;,ptr(this.arg0).add(1).readCString(),&quot; str2=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_1DFB4 onLeave: retval=&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1E298 = libjni_base.add(0x1E298);</span><br><span class="line">    // Interceptor.attach(sub_1E298,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_1E298 onEnter: str1=&quot;,ptr(this.arg0).add(1).readCString(),&quot; str2=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_1E298 onLeave: retval=&quot;,ptr(retval).add(1).readCString());</span><br><span class="line">    //         console.log(&quot;sub_1E298 onLeave: arg2=&quot;,hexdump(ptr(this.arg2).readPointer()));</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1AB4C = libjni_base.add(0x1AB4C);</span><br><span class="line">    Interceptor.attach(sub_1AB4C,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            this.arg2 = args[2];</span><br><span class="line">            console.log(&quot;sub_1AB4C onEnter: arg0=&quot;,ptr(this.arg0).readCString(),&quot; arg1=&quot;,this.arg1);</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_1AB4C onLeave: arg2=&quot;,hexdump(this.arg2,&#123; offset: 0, length: 16, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_171C4 = libjni_base.add(0x171C4);</span><br><span class="line">    Interceptor.attach(sub_171C4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_171C4 onEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_171C4 onEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_171C4 onLeave: retval=&quot;,hexdump(retval,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    var sub_18490 = libjni_base.add(0x18490);</span><br><span class="line">    Interceptor.attach(sub_18490,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_18490 onEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_18490 onEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123; </span><br><span class="line">            console.log(&quot;sub_18490 onLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_18490 onLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_java();</span><br><span class="line">    hook_native();</span><br><span class="line">&#125;</span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
+<h2 id="L6-2：-Frida-辅助分析OLLVM-控制流混淆"><a href="#L6-2：-Frida-辅助分析OLLVM-控制流混淆" class="headerlink" title="L6.2： Frida 辅助分析OLLVM 控制流混淆"></a>L6.2： Frida 辅助分析OLLVM 控制流混淆</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br></pre></td><td class="code"><pre><span class="line">function hook_java()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        var hello_jni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">        hello_jni.sign2.implementation = function(str1,str2)&#123;</span><br><span class="line">            var ret = this.sign2(str1,str2);</span><br><span class="line">            console.log(&quot;sign2: arg1=&quot;,str1,&quot;arg2=&quot;,str2,&quot;ret=&quot;,ret);</span><br><span class="line">            return ret;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;)</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native()</span><br><span class="line">&#123;</span><br><span class="line">    var libjni_base = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sign2 = Module.findExportByName(&quot;libhello-jni.so&quot;,&quot;Java_com_example_hellojni_HelloJni_sign2&quot;);</span><br><span class="line">    console.log(&quot;base:&quot;,libjni_base,&quot;sign2:&quot;,sign2);</span><br><span class="line"></span><br><span class="line">    var sub_12B44 = libjni_base.add(0x12B44);</span><br><span class="line">    Interceptor.attach(sub_12B44,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            console.log(&quot;sub_12B44 onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_12B44 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_12B44 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1391C = libjni_base.add(0x1391C);</span><br><span class="line">    Interceptor.attach(sub_1391C,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            //console.log(&quot;sub_1391C onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_1391C onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_1391C onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_18D30 = libjni_base.add(0x18D30);</span><br><span class="line">    Interceptor.attach(sub_18D30,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.arg3 = args[2];</span><br><span class="line">            console.log(&quot;sub_18D30 onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_18D30 onLeave: retval=&quot;,hexdump(retval));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_18AB0 = libjni_base.add(0x18AB0);</span><br><span class="line">    Interceptor.attach(sub_18AB0,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.x8 = this.context.x8;</span><br><span class="line">            //方法的返回值一般都在 x0 上；如果方法返回值是一个较大的数据结构时，结果会存在 x8 执行的地址上。</span><br><span class="line">            //如果打印X0没有结果，可以看汇编查看是否是X8存储的结果（jstring结构体+0x10指针）</span><br><span class="line">            console.log(&quot;sub_18AB0 onEnter: arg1=&quot;,ptr(this.arg1).add(1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).add(1).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            //console.log(&quot;sub_18AB0 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            console.log(&quot;sub_18AB0 onLeave: retx8 =&quot;,hexdump(ptr(this.x8).add(Process.pointerSize*2).readPointer()));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_12CF4 = libjni_base.add(0x12CF4);</span><br><span class="line">    Interceptor.attach(sub_12CF4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            console.log(&quot;sub_12CF4 onEnter: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_12CF4 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_12CF4 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">    </span><br><span class="line">    var sub_16900 = libjni_base.add(0x16900);</span><br><span class="line">    Interceptor.attach(sub_16900,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.arg3 = args[2];</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg1=&quot;,ptr(this.arg1).readCString());</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg2=&quot;,this.arg2);</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg3=&quot;,ptr(this.arg3).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg1=&quot;,ptr(this.arg1).readCString());</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg2=&quot;,this.arg2);</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg3=&quot;,hexdump(this.arg3));</span><br><span class="line">            //console.log(&quot;sub_16900 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_java()</span><br><span class="line">    hook_native()</span><br><span class="line">&#125;</span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
+<h2 id="L7：Frida-辅助分析非标准算法"><a href="#L7：Frida-辅助分析非标准算法" class="headerlink" title="L7：Frida 辅助分析非标准算法"></a>L7：Frida 辅助分析非标准算法</h2><h2 id="L8：IDA-Trace-辅助分析非标准算法"><a href="#L8：IDA-Trace-辅助分析非标准算法" class="headerlink" title="L8：IDA Trace 辅助分析非标准算法"></a>L8：IDA Trace 辅助分析非标准算法</h2><h2 id="L9：IDA-Trace辅助分析OOLVM混淆的非标准算法"><a href="#L9：IDA-Trace辅助分析OOLVM混淆的非标准算法" class="headerlink" title="L9：IDA Trace辅助分析OOLVM混淆的非标准算法"></a>L9：IDA Trace辅助分析OOLVM混淆的非标准算法</h2><p>后面三课的内容涉及的Frida用法不多，而且之前也都已经涉及到，后面有空了连同上一篇补充下细节。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><ol>
+<li>个人感觉Frida辅助分析OLLVM主要在于运行时HOOK获取到解密后的字符串，以及通过交叉引用获取到程序的参数。</li>
+</ol>
+<p>附件下载：<a href="samples.zip" target="_blank">链接</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Frida/" rel="tag"># Frida</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2020/05/07/2020-05-07-Frida%E5%B8%B8%E7%94%A8Hook%E5%AE%89%E5%8D%93APP%E6%96%B9%E5%BC%8F/" rel="next" title="2020-05-07-Frida常用Hook安卓APP方式">
+                  <i class="fa fa-chevron-left"></i> 2020-05-07-Frida常用Hook安卓APP方式
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2021/03/01/2021-03-01-%E4%BD%BF%E7%94%A8Unicorn%E6%A8%A1%E6%8B%9F%E8%BF%90%E8%A1%8C%E7%A0%B4%E8%A7%A3%E7%AE%80%E5%8D%95%E7%9A%84IOS-IPA-Crackme/" rel="prev" title="2021-03-01-使用Unicorn模拟运行破解简单的IOS-IPA-Crackme">
+                  2021-03-01-使用Unicorn模拟运行破解简单的IOS-IPA-Crackme <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#L4：-Frida-辅助分析OLLVM字符串混淆"><span class="nav-number">1.</span> <span class="nav-text">L4： Frida 辅助分析OLLVM字符串混淆</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#L5-Frida-辅助分析OLLVM-控制流平坦化"><span class="nav-number">2.</span> <span class="nav-text">L5: Frida 辅助分析OLLVM 控制流平坦化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#L6-1：-Frida-辅助分析OLLVM-指令替换"><span class="nav-number">3.</span> <span class="nav-text">L6.1： Frida 辅助分析OLLVM 指令替换</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#L6-2：-Frida-辅助分析OLLVM-控制流混淆"><span class="nav-number">4.</span> <span class="nav-text">L6.2： Frida 辅助分析OLLVM 控制流混淆</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#L7：Frida-辅助分析非标准算法"><span class="nav-number">5.</span> <span class="nav-text">L7：Frida 辅助分析非标准算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#L8：IDA-Trace-辅助分析非标准算法"><span class="nav-number">6.</span> <span class="nav-text">L8：IDA Trace 辅助分析非标准算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#L9：IDA-Trace辅助分析OOLVM混淆的非标准算法"><span class="nav-number">7.</span> <span class="nav-text">L9：IDA Trace辅助分析OOLVM混淆的非标准算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">8.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">104k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

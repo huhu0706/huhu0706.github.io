@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;这里主要介绍一下Windows驱动开发的一些基础知识，善用Windows驱动可以做到很多事情，比如常见的Rootkit隐藏文件、进程等，其实不仅仅是隐藏自身的目的，驱动可以做很多事情，获取到内核之后基本无所不能，但是很多情况下是理论上的，实际做到可能门槛很高，代价大，下面首先介绍一下驱动开发环境的配置（PS：本文是2020年初把以前内部交流的PPT">
+<meta name="keywords" content="内核原理,系统机制,内核漏洞,Rootkit">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2018-02-06-Windows内核驱动与Rootkit杂记">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;这里主要介绍一下Windows驱动开发的一些基础知识，善用Windows驱动可以做到很多事情，比如常见的Rootkit隐藏文件、进程等，其实不仅仅是隐藏自身的目的，驱动可以做很多事情，获取到内核之后基本无所不能，但是很多情况下是理论上的，实际做到可能门槛很高，代价大，下面首先介绍一下驱动开发环境的配置（PS：本文是2020年初把以前内部交流的PPT">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%870.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%871.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%872.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%874.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%875.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%876.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%877.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%878.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%879.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8710.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8711.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8712.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8713.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8714.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8715.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8716.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8716-2.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8717.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8717-2.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8718.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8718-2.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8720.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8721.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8722.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8723.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8724.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8725.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8726.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8727.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8728.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8729.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8730.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8731-0.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8731.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8732.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8733.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8734.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8735.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8736.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8737.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8738.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8739.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8740.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8741.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8742.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8743.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8744.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8745.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8746.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8747.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8748.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8749.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8750.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8751.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8752.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8753.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8754.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8755.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8756.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8757.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%8758.png">
+<meta property="og:updated_time" content="2020-05-02T10:00:48.720Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2018&#x2F;02&#x2F;06&#x2F;2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0&#x2F;%E5%9B%BE%E7%89%870.png">
+
+<link rel="canonical" href="https://huhu0706.github.io/2018/02/06/2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2018-02-06-Windows内核驱动与Rootkit杂记 | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2018/02/06/2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2018-02-06-Windows内核驱动与Rootkit杂记
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-02-06 16:49:50" itemprop="dateCreated datePublished" datetime="2018-02-06T16:49:50+08:00">2018-02-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-05-02 18:00:48" itemprop="dateModified" datetime="2020-05-02T18:00:48+08:00">2020-05-02</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%B3%BB%E7%BB%9F%E5%86%85%E6%A0%B8/" itemprop="url" rel="index">
+                    <span itemprop="name">系统内核</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;这里主要介绍一下Windows驱动开发的一些基础知识，善用Windows驱动可以做到很多事情，比如常见的Rootkit隐藏文件、进程等，其实不仅仅是隐藏自身的目的，驱动可以做很多事情，获取到内核之后基本无所不能，但是很多情况下是理论上的，实际做到可能门槛很高，代价大，下面首先介绍一下驱动开发环境的配置（PS：本文是2020年初把以前内部交流的PPT整理了下发布，描述比较简单仅为个人整理记录备忘用，部分图片及文字描述如IRP部分来自麦洛克菲内核编程培训，其它有一部分忘记来源，当时是内部交流没注意保留来源，后来找不到出处了，如有侵权请与我联系标注来源）。
+</blockquote>
+<a id="more"></a>
+<h2 id="环境配置"><a href="#环境配置" class="headerlink" title="环境配置"></a>环境配置</h2><h3 id="驱动编程开发环境"><a href="#驱动编程开发环境" class="headerlink" title="驱动编程开发环境"></a>驱动编程开发环境</h3><p>首先需要安装WDK：<br><img src="%E5%9B%BE%E7%89%870.png" alt=""><br>IDE的话可以选择VS2013 Or VS 2010+VisualDDK：<br><img src="%E5%9B%BE%E7%89%871.png" alt=""><br>VS2013及以后的VS都自带驱动编程解决方案。<br><img src="%E5%9B%BE%E7%89%872.png" alt=""><br>下面介绍驱动调试环境。</p>
+<h3 id="驱动调试环境"><a href="#驱动调试环境" class="headerlink" title="驱动调试环境"></a>驱动调试环境</h3><p>Vmware、VirtualBox<br>Windbg ：包含在WDK里<br>VirtualKD ：快速搭建双机调试环境<br>调试符号：对象文件调试信息<br><img src="%E5%9B%BE%E7%89%874.png" alt=""></p>
+<h4 id="Windbg简介"><a href="#Windbg简介" class="headerlink" title="Windbg简介"></a>Windbg简介</h4><p>功能无比强大的调试器，支持内核态、用户态，以及源码调试等。<br><img src="%E5%9B%BE%E7%89%875.png" alt=""></p>
+<h4 id="IDA简介"><a href="#IDA简介" class="headerlink" title="IDA简介"></a>IDA简介</h4><p>功能无比强大的静态分析神器。<br>反编译、交叉引用、图形模式…</p>
+<p><img src="%E5%9B%BE%E7%89%876.png" alt=""></p>
+<h2 id="驱动加载"><a href="#驱动加载" class="headerlink" title="驱动加载"></a>驱动加载</h2><p>这里只介绍最常规的NT驱动的加载，</p>
+<ol>
+<li>INF文件安装</li>
+<li>DriverMonitor.exe</li>
+<li>自己瞎编<br>OpenSCManager<br>CreateService<br>OpenService<br>StartService<br><img src="%E5%9B%BE%E7%89%877.png" alt=""></li>
+</ol>
+<p>自己编写驱动使用DriverMonitor就足够了，DriverMonitor使用也比较简单。<br>如果是自己的木马加载驱动的话就需要自己写程序了。</p>
+<h2 id="数据交互"><a href="#数据交互" class="headerlink" title="数据交互"></a>数据交互</h2><p>下面介绍开始介绍驱动加载到系统之后，应用层程序如何与驱动进行数据交互，在这之前先介绍一下一些概念。</p>
+<blockquote>
+<p>IRP:<br>应用层API调用之后底层发生了什么？<br><img src="%E5%9B%BE%E7%89%878.png" alt=""></p>
+</blockquote>
+<p>IRP可以先简单理解为驱动分发函数的参数。重点看一下IRP头部紧挨着的就是IO_STACK_LOCATION,从n-0代表下面每一层的参数。<br>再来看一下过滤驱动的实现代码里怎么处理的IRP。<br><img src="%E5%9B%BE%E7%89%879.png" alt=""></p>
+<p>看下这段代码，DispatchCommon一般实现就是不处理直接下发到下一层设备。<br><img src="%E5%9B%BE%E7%89%8710.png" alt=""><br>从这里Create/Read/Write/DeviceIoControl/Close也可以看出驱动一般对读写DeviceIoControl等进行处理，也就是数据交互的地方</p>
+<p>这是读写分发函数，看代码，这里就是从IRP中取出参数，然后返回数据。<br><img src="%E5%9B%BE%E7%89%8711.png" alt=""><br><img src="%E5%9B%BE%E7%89%8712.png" alt=""><br><img src="%E5%9B%BE%E7%89%8713.png" alt=""><br>重点看一下IRP头部紧挨着的就是IO_STACK_LOCATION,从n-0代表下面每一层的参数。<br>所以IoGetCurrentIrpStackLocation函数获取本层的参数。</p>
+<p>前面介绍完读写的处理，可能觉得不够灵活，下面介绍的DeviceIoControl就是最常用的数据传递手段。</p>
+<blockquote>
+<p>DeviceIoControl：<br>用户态调用DeviceIoControl函数向驱动发送特定CTL_CODE，向内核态传递数据。</p>
+</blockquote>
+<p><img src="%E5%9B%BE%E7%89%8714.png" alt=""><br>CTL code 包含控制请求的相关信息，驱动程序接受到之后根据此进行数据的获取。看代码。<br><img src="%E5%9B%BE%E7%89%8715.png" alt=""><br><img src="%E5%9B%BE%E7%89%8716.png" alt=""><br>三种数据传递方式原理:</p>
+<ol>
+<li>Buffer IO<br>系统会将用户提供的输入缓冲区的内容复制到IRP中，使用完毕之后重新拷贝至输出缓冲区。</li>
+<li>Direct IO<br>将DeviceIoControl指定的输出缓冲区锁定，在内核模式地址下重新映射一段地址。<br>METHOD_IN_DIRECT及METHOD_OUT_DIRECT</li>
+<li>Neither  IO<br>直接访问用户模式地址，危险！</li>
+</ol>
+<p>CTL code 包含三种数据传递方式，下面介绍下区别。</p>
+<ol>
+<li>BufferIO:安全 效率略差<br>METHOD_BUFFERED<br>输入输出缓冲区：<br>pIrp-&gt;AssociatedIrp.SystemBuffer<br>缓冲区大小：<br><img src="%E5%9B%BE%E7%89%8716-2.png" alt=""></li>
+<li>DirectIO:<br>METHOD_DIRECTED<br>输入缓冲区：<br>pIrp-&gt;AssociatedIrp.SystemBuffer<br>输出缓冲区<br>pIrp-&gt;MdlAddress<br>MDL：内存描述符列表，将同一块内存同时映射到用户态空间和内核。<br>缓冲区大小：<br>Parameters.DeviceIoControl.InputBufferLength;<br>Parameters.DeviceIoControl.OutputBufferLength; </li>
+</ol>
+<blockquote>
+<p>MDL:刚才介绍锁定重新映射的概念，主要通过MDL实现<br>如何使用户态进程与核心态驱动共享内存呢 ?32位Windows中，默认状态下虚拟空间有4G，前2G是每个进程私有的，也就是说在进程切换的时候会变化，后2G是操作系统的，所以是固定的。既然用户态进程和核心态驱动在同一个进程空间里，是不是只要直接传个内存地址过来，就可以访问了？理论上可以但实际上不行，因为用户态的进程在不断地切换，使驱动运行时没法保证前面的用户态进程是哪个，也就不确定前2G虚拟地址空间的映射情况，那么用户态进程传来的地址也许不是合法的。<br><img src="%E5%9B%BE%E7%89%8717.png" alt=""><br>3. NeitherIO:。<br>METHOD_NEITHER<br>输入缓冲区：<br>Parameters.DeviceIoControl.Type3InputBuffer;<br>输出缓冲区<br>pIrp-&gt;UserBuffer<br>缓冲区大小：<br>Parameters.DeviceIoControl.InputBufferLength;<br>Parameters.DeviceIoControl.OutputBufferLength; </p>
+</blockquote>
+<p>这一段完毕，下面介绍文件系统过滤驱动，在此之前先简单介绍一下Windbg的一些命令</p>
+<blockquote>
+<p>Windbg命令-1</p>
+<ol>
+<li>断点类<br>Bp    软断点<br>例：bp 0x401000;bp nt!NtEnumerateValueKey<br>Ba     硬件断点<br>例：ba r4/w2/e1 0x401000;读、写、执行断点</li>
+<li>查看数据<br>dd 查看数据<br>例：dd 0x400000<br>dt 结构体方式查看<br>例：dt _PEB<br>断点的实现原理：CC软断点，写程序断点     硬件断点：调试寄存器,有兴趣可以研究调试器原理。<br>Dt后面可以加地址。</li>
+</ol>
+</blockquote>
+<h2 id="文件过滤驱动"><a href="#文件过滤驱动" class="headerlink" title="文件过滤驱动"></a>文件过滤驱动</h2><p><img src="%E5%9B%BE%E7%89%8717-2.png" alt=""><br>sFilter框架</p>
+<ol>
+<li>生成控制设备</li>
+<li>注册分发函数</li>
+<li>绑定设备</li>
+<li>读写…过滤</li>
+</ol>
+<p>文件过滤分发函数及对应功能</p>
+<ol>
+<li>FilterCreate        创建/打开</li>
+<li>FilterRead        读、加解密处理</li>
+<li>FilterWrite          写、加解密处理</li>
+<li>FilterSetInfo       删、重命名等操作</li>
+<li>FilterClean          写关闭<br><img src="%E5%9B%BE%E7%89%8718.png" alt=""><br>其它：MiniFilter 隐藏文件<h2 id="网络过滤驱动"><a href="#网络过滤驱动" class="headerlink" title="网络过滤驱动"></a>网络过滤驱动</h2>框架种类：<br>TDI，NDIS驱动（小端口驱动/中间层驱动/协议驱动），WFP……<br>应用：<br>构建隐蔽通道，流量监控，网络防火墙…</li>
+</ol>
+<p><img src="%E5%9B%BE%E7%89%8718-2.png" alt=""><br>TDi 驱动可以实现一套内核层的隐蔽链接。</p>
+<p>IM驱动和过滤驱动相比，有什么利弊之分？<br>1.IM有最好的通用性，可以在WINXP,WIN2K,VISTA,WIN7中全面兼容，但它对VISTA与WIN7中的支持，是通过在通信函数中加入从NDIS_PACKET至NET_BUFFER转换层实现，所以性能在WIN7下应该是反而减弱了。<br>2.过滤驱动是直接使用NET_BUFFER来进行通信的，这种方式会有更好性能，主要的原因是NET_BUFFER使用了新的数据表示方法，避免的频繁的内存复制。具体可以参考MSDN。但很明显，它无法支持WINXP及之前的系统。</p>
+<p>NDIS Filter框架:<br>微软建议使用NDIS Filter替代NDIS IMD。<br>特点:</p>
+<ul>
+<li>VS2013+WDK集成</li>
+<li>灵活方便</li>
+<li>性能更好</li>
+</ul>
+<p>NDIS Filter框架:</p>
+<ol>
+<li>DriverEntry</li>
+</ol>
+<ul>
+<li>NDIS_FILTER_DRIVER_CHARACTERISTICS<br>指定一些Filter驱动的特性</li>
+<li>NdisFRegisterFilterDriver<br>注册驱动</li>
+</ul>
+<ol start="2">
+<li>FilterSendNetBufferLists<br>过滤一个NET_BUFFER_LIST的发送。</li>
+<li>FilterReceiveNetBufferLists<br>过滤一个NET_BUFFER_LIST的接收。</li>
+</ol>
+<p><img src="%E5%9B%BE%E7%89%8720.png" alt=""><br>LWF中用它自己的方式存储以太网中的数据帧，这就是NBL(NET_BUFFER_LIST)，也就是在代码中，通过你注册的回调函数的参数系统将数据以PNET_BUFFER_LIST形式会传递给你，这时候你就能做数据过滤的操作了。这是个LIST，其中每个NBL又包含若干个NB(NET_BUFFER)，每个NB有包含若干个MDL。真正的数据在这MDL中。</p>
+<h2 id="内核反调试"><a href="#内核反调试" class="headerlink" title="内核反调试"></a>内核反调试</h2><p>KdDisableDebugger<br><img src="%E5%9B%BE%E7%89%8721.png" alt=""><br>KdDebuggerNotPresent<br>KdSendPacket、KdRecivePacket<br><img src="%E5%9B%BE%E7%89%8722.png" alt=""></p>
+<blockquote>
+<p>Windbg命令-2</p>
+<ol>
+<li>查看符号<br>x命令：<br><img src="%E5%9B%BE%E7%89%8723.png" alt=""></li>
+<li>查看汇编<br>u 显示8条指令<br>uf 显示整个函数<br>ub 显示eip前面的代码<br><img src="%E5%9B%BE%E7%89%8724.png" alt=""></li>
+</ol>
+</blockquote>
+<h2 id="SSDT-HOOK"><a href="#SSDT-HOOK" class="headerlink" title="SSDT HOOK"></a>SSDT HOOK</h2><p>SSDT:<br>System Services Descriptor Table，系统服务描述符表。Windows系统中存在两个：</p>
+<ul>
+<li>KeServiceDescriptorTable<br>主要处理Kernel32.dll 中系统调用。</li>
+<li>KeServiceDescriptorTableShadow<br>主要处理 User32.dll 和 GDI32.dll 中系统调用。</li>
+</ul>
+<p><img src="%E5%9B%BE%E7%89%8725.png" alt=""><br>并且 KeServiceDescriptorTable 在 ntoskrnl.exe(Windows 操作系统内核文件，包括内核和执行体层)是导出的，<br>而 KeServiceDescriptorTableShadow 则是没有被 Windows 操作系统所导出，<br>而关于 SSDT 的全部内容则都是通过 KeServiceDescriptorTable 来完成的</p>
+<p>Demo:<br><img src="%E5%9B%BE%E7%89%8726.png" alt=""><br><img src="%E5%9B%BE%E7%89%8727.png" alt=""><br><img src="%E5%9B%BE%E7%89%8728.png" alt=""><br><img src="%E5%9B%BE%E7%89%8729.png" alt=""><br><img src="%E5%9B%BE%E7%89%8730.png" alt=""><br>SSDT HOOK能做什么？</p>
+<ul>
+<li>文件/注册表/进程隐藏</li>
+<li>进程保护</li>
+<li>监控模块加载</li>
+<li>…..</li>
+</ul>
+<p>怎么编程定位SSDT地址？</p>
+<ul>
+<li>KeServiceDescriptorTable 在 ntoskrnl.exe是导出的，直接声明引用即可。</li>
+</ul>
+<p><img src="%E5%9B%BE%E7%89%8731-0.png" alt=""></p>
+<p>如何修改SSDT表项？</p>
+<ul>
+<li>系统对 SSDT 都是只读的，不能直接写</li>
+</ul>
+<p><img src="%E5%9B%BE%E7%89%8731.png" alt=""><br><img src="%E5%9B%BE%E7%89%8732.png" alt=""></p>
+<p>示例：古老的ssdt hook隐藏文件<br><img src="%E5%9B%BE%E7%89%8733.png" alt=""></p>
+<blockquote>
+<p>Tips：Zw？Nt？<br>区别<br>ba e1 nt!NtEnumerateValueKey查看<br>Ntdll.dll中两者一样<br>Ntoskrnl.exe中nt函数更底层，Zw<em>函数会把PreviousMode设置为KernelMode  然后再调用Nt</em>函数，因此在Nt<em>函数中就不会进行参数检查。如果直接调用Nt</em>函数的话 , 必须自己将PreviousMode设置为KernelMode,否则PreviousMode很可能仍然是UserMode, 这样的话 Nt*函数就会产生问题。</p>
+</blockquote>
+<blockquote>
+<p>Tips：xuetr(pc hunter)<br><img src="%E5%9B%BE%E7%89%8734.png" alt=""></p>
+</blockquote>
+<blockquote>
+<p>Tips：PatchGuard<br><img src="%E5%9B%BE%E7%89%8735.png" alt=""></p>
+</blockquote>
+<blockquote>
+<p>Tips：APC相关结构</p>
+<ul>
+<li>_EPROCESS执行体进程块    <pre><code>进程对象，与用户态的PEB结构联系很大，除了包含许多与进程有关的属性之外，还包含和指向许多其他的相关数据结构。</code></pre></li>
+<li>_THREAD执行体线程块    <pre><code>ETHREAD(执行体线程块)是执行体层上的线程对象的数据结构。在windows内核中，每个进程的每一个线程都对应着一个ETHREAD数据结构。</code></pre></li>
+</ul>
+</blockquote>
+<p><img src="%E5%9B%BE%E7%89%8736.png" alt=""></p>
+<h2 id="APC注入"><a href="#APC注入" class="headerlink" title="APC注入"></a>APC注入</h2><p>APC简介:<br>异步过程调用，给程序在本函数返回后还能执行的机会。包括内核APC及用户APC。</p>
+<p>APC注入步骤:</p>
+<ol>
+<li>遍历进程列表寻找合适进程、线程</li>
+<li>在目标进程中申请空间布置Shellcode</li>
+<li>KeInitializeApc初始化APC</li>
+<li>KeInsertQueueApc插入APC</li>
+</ol>
+<p>内核如何遍历进程列表:<br>PsGetCurrentProcess()<br>ActiveProcessLinks</p>
+<p>在目标进程中申请空间:<br>KeStackAttachProcess/KeUnstackDetachProcess<br>MDL或ZwAllocateVirtualMemory</p>
+<p>相关事项及说明:<br>当线程在alertable状态时才执行这些APC函数<br>Win7系统内核在目标进程中分配内存不要使用MDL，没有执行权限，进程会崩溃，可以使用ZwAllocateVirtualMemory，WinXP上不受影响。</p>
+<p>比较简单，还有其他Usermodecallback等方式的注入,可以了解下。</p>
+<h2 id="强杀进程"><a href="#强杀进程" class="headerlink" title="强杀进程"></a>强杀进程</h2><ol>
+<li>暴力搜索PspTerminateProcess函数地址</li>
+<li>PspTerminateProcess函数未导出</li>
+<li>NtQuerySystemInformation两次调用获取nt基址</li>
+<li>搜索特征获取PspTerminateProcess地址并调用</li>
+</ol>
+<p>NtQuerySystemInformation Win8好像还能用后面就禁用了。</p>
+<h2 id="强删文件"><a href="#强删文件" class="headerlink" title="强删文件"></a>强删文件</h2><p><img src="%E5%9B%BE%E7%89%8737.png" alt=""><br><img src="%E5%9B%BE%E7%89%8738.png" alt=""><br>文件独占如何删？</p>
+<ol>
+<li>枚举句柄表 ZwQuerySystemInformation </li>
+<li>复制句柄 ZwDuplicateObject然后ZwClose </li>
+<li>使用DUPLICATE_CLOSE_SOURCE再次ZwDuplicateObject，然后ZwClose</li>
+</ol>
+<p>正在运行如何删？</p>
+<ol>
+<li>NtfsSetDispositionInfo-&gt;MmFlushImageSection检查</li>
+<li>ImageSectionObject 和 DataSectionObject设为0<br>构建IRP包发送</li>
+</ol>
+<p>删除文件时会先到NTFS.sys的分派例程，NtfsSetDispositionInfo-》MmFlushImageSection。MmFlushImageSection检查这个文件对象的SECTION_OBJECT_POINter结构是不是为空，没有在运行直接返回TRUE。所以如果想要删除正在运行的文件，一种方法是设置SECTION_OBJECT_POINter结构里的变量都为0。这样MmFlushImageSection为返回TRUE，表示能删除。另一种方法是HOOK NTFS.sys的导入表中的MmFlushImageSection（）函数，在HOOK函数中检查是不是我们要删除的文件，是的话直接返回TRUE也行</p>
+<p>如何构建IRP包发送:</p>
+<ul>
+<li>IoBuildSynchronousFsdRequest<br>创建同步的 IRP 请求，但是只可以创建IRP_MJ_PNP ,IRP_MJ_READ,IRP_MJ_WRITE,IRP_MJ_FLUSH_BUFFERS 和IRP_MJ_SHUTDOWN 类型。</li>
+<li>IoBuildAsynchronousFsdRequest<br>创建异步的 IRP 请求。</li>
+<li>IoBuildDeviceIoControl<br>创建同步的 IRP，类型为：IRP_MJ_DEVICE_CONTROL 和 IRP_MJ_INTERNAL_DEVICE_CONTROL。 </li>
+<li>IoAllocateIrp：创建后自行填写参数</li>
+</ul>
+<p>IoAllocateIrp 函数的使用比较灵活，他可以创建任意类型的 IRP ，但不是由参数指定，而是创建后自行填写，要求用户对 IRP 的结构有比较熟悉的理解。<br><img src="%E5%9B%BE%E7%89%8739.png" alt=""></p>
+<h2 id="Bootkit"><a href="#Bootkit" class="headerlink" title="Bootkit"></a>Bootkit</h2><p>鬼影。TDL4。<br><img src="%E5%9B%BE%E7%89%8740.png" alt=""><br>Bootkit种类:</p>
+<ul>
+<li>Bios Bootkit<br>代表：谍影、 BMW病毒、Hacking Team<br>过于依赖硬件，通用性差。</li>
+<li>MBR Bootkit<br>代表：鬼影、TDL4、暗云<br>隐蔽性差，易发现。</li>
+<li>VBR Bootkit<br>代表： GrayFish<br>Other</li>
+</ul>
+<p>MBR类Bootkit的调试-Bochs:<br><img src="%E5%9B%BE%E7%89%8741.png" alt=""><br>MBR类Bootkit的调试-IDA远程调试:<br><img src="%E5%9B%BE%E7%89%8742.png" alt=""><br><img src="%E5%9B%BE%E7%89%8743.png" alt=""><br><img src="%E5%9B%BE%E7%89%8744.png" alt=""></p>
+<h2 id="驱动签名"><a href="#驱动签名" class="headerlink" title="驱动签名"></a>驱动签名</h2><p>DSE 机制:<br>Win7 64位操作系统开始引入驱动强制签名机制(Driver Signature Enforcement)，必须重启在Bios中关闭设置等，才能加载未经过签名的驱动程序。</p>
+<p><img src="%E5%9B%BE%E7%89%8745.png" alt=""><br>申请方式：<br>个人<br>企业</p>
+<p>怎么办？<br>已签名驱动程序的漏洞<br>散列碰撞伪装签名（火焰病毒）</p>
+<p>怎么办？<br>利用内核提权漏洞突破<br>Win7修改nt!g_CiEnabled为0<br>Win8修改ci!g_CiOptions为8<br>过期、吊销的签名</p>
+<h2 id="提权漏洞"><a href="#提权漏洞" class="headerlink" title="提权漏洞"></a>提权漏洞</h2><p>内核提权不单单指Windows内核，杀软驱动等等都可以含有提权漏洞<br><img src="%E5%9B%BE%E7%89%8746.png" alt=""></p>
+<blockquote>
+<p>Tips：Windbg命令<br>切换进程<br>!process 0 0 explorer.exe<br>.process /p /r ……<br>查看栈回溯<br>kb<br><img src="%E5%9B%BE%E7%89%8747.png" alt=""></p>
+</blockquote>
+<p>CVE-2014-4113:<br>微软内核中xxx开头的函数都会调用KeUserModeCallback<br>回调函数进入用户态时释放掉该Menu对象会导致后续再使用这个对象出问题<br><img src="%E5%9B%BE%E7%89%8748.png" alt=""></p>
+<blockquote>
+<p>Tips：KeUserModeCallback<br><img src="%E5%9B%BE%E7%89%8749.png" alt=""><br><img src="%E5%9B%BE%E7%89%8750.png" alt=""><br><img src="%E5%9B%BE%E7%89%8751.png" alt=""></p>
+</blockquote>
+<p>漏洞流程：<br><img src="%E5%9B%BE%E7%89%8752.png" alt=""><br><img src="%E5%9B%BE%E7%89%8753.png" alt=""><br><img src="%E5%9B%BE%E7%89%8754.png" alt=""><br><img src="%E5%9B%BE%E7%89%8755.png" alt=""></p>
+<p>为什么Shellcode会执行：<br><img src="%E5%9B%BE%E7%89%8756.png" alt=""></p>
+<p>申请0页内存：<br><img src="%E5%9B%BE%E7%89%8757.png" alt=""></p>
+<p>Shellcode：替换system进程Token<br><img src="%E5%9B%BE%E7%89%8758.png" alt=""></p>
+<p>其它类型Shellcode：<br>覆写SEP_TOKEN_PRIVILEDGES<br>覆写 HalDispatchTable</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%86%85%E6%A0%B8%E5%8E%9F%E7%90%86/" rel="tag"># 内核原理</a>
+              <a href="/tags/%E7%B3%BB%E7%BB%9F%E6%9C%BA%E5%88%B6/" rel="tag"># 系统机制</a>
+              <a href="/tags/%E5%86%85%E6%A0%B8%E6%BC%8F%E6%B4%9E/" rel="tag"># 内核漏洞</a>
+              <a href="/tags/Rootkit/" rel="tag"># Rootkit</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2018/01/10/2018-01-10-%E4%B8%8D%E8%84%B1%E5%A3%B3%E7%88%86%E7%A0%B4%E6%9F%90VMP%E5%8A%A0%E5%A3%B3%E7%A8%8B%E5%BA%8F/" rel="next" title="2018-01-10-利用硬件断点Hook法不脱壳爆破某VMP加壳程序">
+                  <i class="fa fa-chevron-left"></i> 2018-01-10-利用硬件断点Hook法不脱壳爆破某VMP加壳程序
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2019/01/24/2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90/" rel="prev" title="2019-01-24-一段简单的Shellcode内存加载PE的分析">
+                  2019-01-24-一段简单的Shellcode内存加载PE的分析 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#环境配置"><span class="nav-number">1.</span> <span class="nav-text">环境配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#驱动编程开发环境"><span class="nav-number">1.1.</span> <span class="nav-text">驱动编程开发环境</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#驱动调试环境"><span class="nav-number">1.2.</span> <span class="nav-text">驱动调试环境</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Windbg简介"><span class="nav-number">1.2.1.</span> <span class="nav-text">Windbg简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#IDA简介"><span class="nav-number">1.2.2.</span> <span class="nav-text">IDA简介</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#驱动加载"><span class="nav-number">2.</span> <span class="nav-text">驱动加载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据交互"><span class="nav-number">3.</span> <span class="nav-text">数据交互</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#文件过滤驱动"><span class="nav-number">4.</span> <span class="nav-text">文件过滤驱动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#网络过滤驱动"><span class="nav-number">5.</span> <span class="nav-text">网络过滤驱动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内核反调试"><span class="nav-number">6.</span> <span class="nav-text">内核反调试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSDT-HOOK"><span class="nav-number">7.</span> <span class="nav-text">SSDT HOOK</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#APC注入"><span class="nav-number">8.</span> <span class="nav-text">APC注入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#强杀进程"><span class="nav-number">9.</span> <span class="nav-text">强杀进程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#强删文件"><span class="nav-number">10.</span> <span class="nav-text">强删文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bootkit"><span class="nav-number">11.</span> <span class="nav-text">Bootkit</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#驱动签名"><span class="nav-number">12.</span> <span class="nav-text">驱动签名</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#提权漏洞"><span class="nav-number">13.</span> <span class="nav-text">提权漏洞</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">104k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

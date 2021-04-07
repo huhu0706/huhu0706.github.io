@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="一段简单恶意代码注入的Shellcode部分,主要功能为内存解析加载，帮朋友简单看了下，写了个简单的分析，顺便博客记录下，懒IDB里就没详细标注等，仅做个简单的记录。  简介&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;Shellcode代码因为其一般都是加载到动态申请的内存中，内存地址不固定，这就要求Shellcode代码中不能包含绝对地址引用的代码，如：">
+<meta name="keywords" content="Shellcode,内存加载,Mdebug">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2019-01-24-一段简单的Shellcode内存加载PE的分析">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="一段简单恶意代码注入的Shellcode部分,主要功能为内存解析加载，帮朋友简单看了下，写了个简单的分析，顺便博客记录下，懒IDB里就没详细标注等，仅做个简单的记录。  简介&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;Shellcode代码因为其一般都是加载到动态申请的内存中，内存地址不固定，这就要求Shellcode代码中不能包含绝对地址引用的代码，如：">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;19ba9df2-3dea-11ea-8f84-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;6a4c4b9e-3dea-11ea-87d9-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;a7a82882-3dea-11ea-8a50-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;f01c3068-3dea-11ea-8138-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;021fce82-3deb-11ea-a0e2-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;68f1bf4e-3deb-11ea-b416-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;7f173852-3dec-11ea-ad96-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;910e81f0-3dec-11ea-8310-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;a32f6ce6-3dec-11ea-87cd-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;b59a2a74-3dec-11ea-8316-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;c63ab70e-3dec-11ea-9210-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;d54dc47a-3dec-11ea-b45c-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;e39e5a1c-3dec-11ea-8dd1-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;03b78f8a-3ded-11ea-9d3b-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;157c903a-3ded-11ea-ae31-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;249e920c-3ded-11ea-bc36-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;5bbd6060-3ded-11ea-9042-f06e0bc67931.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;76902d14-3ded-11ea-9641-f06e0bc67931.png">
+<meta property="og:updated_time" content="2020-04-30T04:54:33.277Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;01&#x2F;24&#x2F;2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90&#x2F;19ba9df2-3dea-11ea-8f84-f06e0bc67931.png">
+
+<link rel="canonical" href="https://huhu0706.github.io/2019/01/24/2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2019-01-24-一段简单的Shellcode内存加载PE的分析 | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2019/01/24/2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2019-01-24-一段简单的Shellcode内存加载PE的分析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-24 16:10:53" itemprop="dateCreated datePublished" datetime="2019-01-24T16:10:53+08:00">2019-01-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-04-30 12:54:33" itemprop="dateModified" datetime="2020-04-30T12:54:33+08:00">2020-04-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%97%85%E6%AF%92%E6%A0%B7%E6%9C%AC/" itemprop="url" rel="index">
+                    <span itemprop="name">病毒样本</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>一段简单恶意代码注入的Shellcode部分,主要功能为内存解析加载，帮朋友简单看了下，写了个简单的分析，顺便博客记录下，懒IDB里就没详细标注等，仅做个简单的记录。</p>
+</blockquote>
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>&ensp;&ensp;&ensp;&ensp;Shellcode代码因为其一般都是加载到动态申请的内存中，内存地址不固定，这就要求Shellcode代码中不能包含绝对地址引用的代码，如：
+<a id="more"></a>
+
+<p><img src="19ba9df2-3dea-11ea-8f84-f06e0bc67931.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;实际的Shellcode代码因为地址不固定，如果出现图中向固定地址拷贝数据的指令，往往会因为该地址处不存在可写内存而导致执行崩溃，为了避免这种情况，Shellcode本身往往在最开始的指令就需要首先获取到自身所加载的内存地址，即重定位过程，以附件所给的shellcode样本为例：
+
+<p><img src="6a4c4b9e-3dea-11ea-87d9-f06e0bc67931.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;第一条call指令是调用的自身下一条指令（这条call指令本身占5个字节，其中E8代表Call指令的机器码，后四字节值为00000000代表相对本条指令结束地址的偏移，既是下一条指令，IDA识别成Call $5则代表相对指令首地址0偏移5字节），在call指令执行时会首先将返回地址压栈，再跳转到第二条指令执行，而第二条指令pop eax则是将上一条call指令压入栈顶的返回地址值弹出赋值给eax，此时eax的值即为这段shellcode所在的内存首地址+5，第三条指令sub eax，5执行完之后eax寄存器值即为shellcode在内存中的起始地址。这就是最典型的利用call xxx；pop bbb类型指令完成重定位的指令特征。 
+### 分析
+<p>&ensp;&ensp;&ensp;&ensp;因shellcode无法直接运行，为了动态调试Shellcode需要提供其运行环境，可以选择自己编程加载，也可以将Shellcode数据使用16进制编辑器拷贝到其他程序中直接调试（这种方式要求拷贝进去的程序空间足够容纳Shellcode），示例Shellcode样本体积较大，为了方便采用MDebug调试器直接加载调试（MDebug的32位调试器相对OD等使用界面比较丑陋，插件支持的也不多，如果再麻烦点的Shellcode还是前几种方式加载再使用OD调试方便，MDebug调试器的优势在于加载Shellcode方便并且支持64位代码）：
+
+<p><img src="a7a82882-3dea-11ea-8a50-f06e0bc67931.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;选择shellcode文件打开查看代码：
+
+<p><img src="f01c3068-3dea-11ea-8138-f06e0bc67931.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;在当前调试状态Shellcode加载内存基址为0x162000,执行完毕第三条指令时eax寄存器的值即为0x162000:
+
+<p><img src="021fce82-3deb-11ea-a0e2-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;这就是Shellcode常用的重定位过程，下面继续跟踪时需要注意，执行到偏移0x1D61D函数时执行了两次call指令（内存地址0x16200e处call 0x16351F、0x163524处call 0x17F611，返回地址分别为0x162013与0x163529），因为call指令本身会将返回地址压栈，而程序执行过程中参数是通过栈传递的，所以这两次call 指令相当于将返回地址中指向Shellcode本身数据的指针当成了参数传递给了0x1D61D函数，单步执行到0x1D61D函数，内存中对应：
+
+<p><img src="68f1bf4e-3deb-11ea-b416-f06e0bc67931.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;根据函数调用约定可以看到在call 0x17F61D指令之前之前，ESP栈顶指向的内存值即分别为参数列表，参数3为上述提到的返回值0x163529。
+<p>&ensp;&ensp;&ensp;&ensp;0x1D61D偏移处函数即可以使用IDA反编译，下面查看代码：
+
+<p><img src="7f173852-3dec-11ea-ad96-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;开头这一部分就是Shellcode最常用的根据FS寄存器获取GetProcAddress函数地址的代码，格式基本都是固定的，下面的代码继续获取函数地址，直到开始解密Shellcode中的DLL数据：
+
+<p><img src="910e81f0-3dec-11ea-8310-f06e0bc67931.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;代码执行到下述位置为判断解密出来的数据是否是正确的DLL格式：
+
+<p><img src="a32f6ce6-3dec-11ea-87cd-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;直接在此位置下断，对应内存地址0x1801B4，文件偏移0x1E1B4（为了方便查看，IDA里rebase下基址）：
+
+<p><img src="b59a2a74-3dec-11ea-8316-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;得到解密之后的完整DLL文件：
+
+<p><img src="c63ab70e-3dec-11ea-9210-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;右键DUMP内存到文件（文件大小0x2F000，其实可以填写的特别大，DUMP数据比DLL数据多不影响DLL运行及分析，且DLL所在内存空间本身只有0x2F000，实际最大只能DUMP这么大空间）：
+
+<p><img src="d54dc47a-3dec-11ea-b45c-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;后面的代码为解析DLL格式，将其分区段加载到内存：
+
+<p><img src="e39e5a1c-3dec-11ea-8dd1-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;修正导入表：
+
+<p><img src="03b78f8a-3ded-11ea-9d3b-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;调用DLL，首先执行DllEntryPoint，再执行DLL导出函数Main（注意a1、a2等赋值可能成为DLL的Main函数运行参数。没有再继续跟进了）：
+
+<p><img src="157c903a-3ded-11ea-ae31-f06e0bc67931.png" alt=""> </p>
+<p>&ensp;&ensp;&ensp;&ensp;这段代码在IDA里对应：
+
+<p><img src="249e920c-3ded-11ea-bc36-f06e0bc67931.png" alt=""></p>
+<h3 id="一些技巧"><a href="#一些技巧" class="headerlink" title="一些技巧"></a>一些技巧</h3><p>IDA重定义基址：</p>
+<p>&ensp;&ensp;&ensp;&ensp;在IDA中为了方便对应内存中的地址，可以使用rebase功能将ida中代码基址重定义成0x162000：
+
+<p><img src="5bbd6060-3ded-11ea-9042-f06e0bc67931.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;输入0x162000并点击确定：
+
+<p><img src="76902d14-3ded-11ea-9641-f06e0bc67931.png" alt=""></p>
+<p>样本下载：<a href="样本.zip" target="_blank">下载链接</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Shellcode/" rel="tag"># Shellcode</a>
+              <a href="/tags/%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BD/" rel="tag"># 内存加载</a>
+              <a href="/tags/Mdebug/" rel="tag"># Mdebug</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2018/02/06/2018-02-06-Windows%E5%86%85%E6%A0%B8%E9%A9%B1%E5%8A%A8%E4%B8%8ERootkit%E6%9D%82%E8%AE%B0/" rel="next" title="2018-02-06-Windows内核驱动与Rootkit杂记">
+                  <i class="fa fa-chevron-left"></i> 2018-02-06-Windows内核驱动与Rootkit杂记
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2019/07/03/2019-07-03-Chrome-V8-Edge-Chakra%E5%BC%95%E6%93%8E%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90/" rel="prev" title="2019-07-03-Chrome V8+Edge Chakra引擎漏洞利用技术分析（未完成）">
+                  2019-07-03-Chrome V8+Edge Chakra引擎漏洞利用技术分析（未完成） <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#一些技巧"><span class="nav-number">2.</span> <span class="nav-text">一些技巧</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">104k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

