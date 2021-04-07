@@ -324,6 +324,44 @@
       </tags>
   </entry>
   <entry>
+    <title>2015-04-01-吾爱破解脱壳练习笔记</title>
+    <url>/2015/04/01/2015-04-01-%E5%90%BE%E7%88%B1%E7%A0%B4%E8%A7%A3%E8%84%B1%E5%A3%B3%E7%BB%83%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
+    <content><![CDATA[<blockquote>
+<p>主要记录吾爱破解脱壳练习集的部分练习过程及脱壳方法总结，对关键点记录备忘，实际上脱壳需要看壳所具体开启的保护措施（如穿山甲及Pespin的Debug-Block）。除穿山甲及部分壳记录遗失或未记录外整体总结不够完整，还有三四款未做深入研究，待有需求时再做记录补充。</p>
+</blockquote>
+<p>6 ：telock笔记<br>方式一：<br>最后一次异常法记录最后一次异常的位置，然后设置代码段内存访问断点。运行即在OEP处断下，dump之后使用importrec的telock插件修复即可。</p>
+<a id="more"></a>
+<p>方式二：<br>如果要是想手工绕过IAT加密，可以在程序运行之后查看IAT的起始位置，重新运行程序，在程序已经执行过硬件断点检查之后再设置对IAT的硬件读或访问断点。<br>运行到类似指令：<br>004698E7    8B85 53384000   mov eax,dword ptr ss:[ebp+403853]<br>004698ED    40              inc eax<br>004698EE    0F84 A8000000   je UnPackMe.0046999C<br>004698F4    80A5 FC2F4000 F&gt;and byte ptr ss:[ebp+402FFC],0FF<br>004698FB    0F84 9B000000   je UnPackMe.0046999C<br>00469901    80A5 FD2F4000 F&gt;and byte ptr ss:[ebp+402FFD],0FF<br>00469908    0F84 8E000000   je UnPackMe.0046999C<br>将004698FB及00469908处的je改成jne即可，再代码节断点结合最后一次异常法即可到OEP，之后就不用修复导入表了。</p>
+<p>8 ：molebox：<br>用oep定律可以直接到oep，但是这样的话importrec的修复不好。<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 455170，设置硬件访问断点，在一次赋值之后断下：<br>00455170  7C801D53  kernel32.LoadLibraryExA<br>从此开始单步跟踪，不取消断点：<br>00471666    FF15 40D84700   call dword ptr ds:[47D840]               ; kernel32.VirtualProtect<br>0047166C    85C0            test eax,eax<br>0047166E    75 0A           jnz short UnPackMe.0047167A<br>00471670    B9 0B0000EF     mov ecx,EF00000B<br>00471675    E8 9D2F0000     call UnPackMe.00474617<br>0047167A    8B4D 08         mov ecx,dword ptr ss:[ebp+8]<br>0047167D    8B55 F8         mov edx,dword ptr ss:[ebp-8]<br>00471680    8B02            mov eax,dword ptr ds:[edx]<br>00471682    8901            mov dword ptr ds:[ecx],eax<br>到了此处之后将00471682处修改IAT的指令给nop掉。到了oep之后dump即可。</p>
+<p>9 : CRYPToCRACk：<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 45512c。设置硬件访问断点：<br>00468331    5A              pop edx                                  ; UnPackMe.0045512C<br>00468332    59              pop ecx                                  ; UnPackMe.0045512C<br>00468333    5B              pop ebx                                  ; UnPackMe.0045512C<br>00468334    8B7C24 04       mov edi,dword ptr ss:[esp+0x4]           ; UnPackMe.00468384<br>00468338    893C8A          mov dword ptr ds:[edx+ecx<em>4],edi         ; UnPackMe.00468384<br>0046833B    807F 05 55      cmp byte ptr ds:[edi+0x5],0x55<br>在0046833B断下，修改00468338为mov dword ptr ds:[edx+ecx</em>4],eax，并新建eip即可绕过IAT加密。<br>同样ESP定律到达OEP。有时候会到达OEP的下一条指令。手工简单修复下堆栈及寄存器即可。</p>
+<p>10 : pespin笔记：<br>记录esp值如12ffc4，给VirtualProtect下memory access断点，可以看到有检查CC断点，不用管继续运行到VirtualProtect调用。运行到返回之后给之前的ESP-4=12ffc0值设置硬件访问断点。<br>断下来之后单步可见到以下形式的stolen code：<br>oep format:<br>xxx<br>jmp to yyy<br>yyy<br>jmp to zzz<br>记录并修复入口即可。</p>
+<p>13：GHF Protector笔记<br>给VirtualAlloc和VirtualProtect下断点，很快就可以到达第二层壳的位置，再利用ESP定律就可以到达真正的OEP，用LoadPE进行Dump时需要取消勾选 《完整转存：从磁盘粘贴文件头》  再用importrec修复时需要注意取消勾选《活动进程信息 使用来自硬盘的PE头》。</p>
+<p>14及18：Armadillo穿山甲<br>其实对OpenMutex函数下断，更改其第二次打开同名互斥量返回值即可快速将双进程变单进程，看到的其它方式略复杂。</p>
+<p>15: ACProtector<br>内存访问断点，直接两次到OEP，修复即可。</p>
+<p>16：Acprotect<br>内存访问断点，注意第一个下到原程序的数据段，第二个下到原程序代码段。不宜下到壳的段（第15个也类似）。</p>
+<p>17：PEBundle<br>ESP定律直接到OEP：<br>修复IAT时候看无效IAT的栈地址，重新运行下硬件访问断点。<br>单步不久看到此处判断是否加密IAT，je改成下图的jmp<br>00471FBF    85C0            test eax,eax<br>00471FC1    EB 25           jmp short UnPackMe.00471FE8<br>00471FC3    51              push ecx<br>od的自带就可以修复。</p>
+<p>19：PUNiSHER<br>data-code访问断点，断下后获取导入函数地址再运行到：<br>003C0890   /EB 33           jmp short 003C08C5</p>
+<p>009F022E    64:A1 00000000  mov eax,dword ptr fs:[0]<br>009F0234    50              push eax<br>009F0235    64:8925 0000000&gt;mov dword ptr fs:[0],esp<br>009F023C    83EC 68         sub esp,68<br>009F023F    53              push ebx<br>009F0240    56              push esi<br>009F0241    57              push edi<br>009F0242    8965 E8         mov dword ptr ss:[ebp-18],esp<br>009F0245    33DB            xor ebx,ebx<br>009F0247    895D FC         mov dword ptr ss:[ebp-4],ebx<br>009F024A    EB 04           jmp short 009F0250</p>
+<p>009F02B7    90              nop<br>009F02B8    FF15 7C214000   call dword ptr ds:[40217C]               ; msvcrt.<strong>set_app_type<br>009F02BE    59              pop ecx<br>009F02BF    830D 3C314000 F&gt;or dword ptr ds:[40313C],FFFFFFFF<br>009F02C6    830D 40314000 F&gt;or dword ptr ds:[403140],FFFFFFFF<br>009F02CD    FF15 78214000   call dword ptr ds:[402178]               ; msvcrt.</strong>p__fmode<br>009F02D3    8B0D 30314000   mov ecx,dword ptr ds:[403130]<br>009F02D9    8908            mov dword ptr ds:[eax],ecx<br>009F02DB    FF15 74214000   call dword ptr ds:[402174]               ; msvcrt.<strong>p</strong>commode<br>009F02E1    8B0D 2C314000   mov ecx,dword ptr ds:[40312C]<br>009F02E7    8908            mov dword ptr ds:[eax],ecx<br>009F02E9    A1 70214000     mov eax,dword ptr ds:[402170]<br>009F02EE    8B00            mov eax,dword ptr ds:[eax]<br>009F02F0    A3 38314000     mov dword ptr ds:[403138],eax<br>009F02F5    EB 04           jmp short 009F02FB</p>
+<p>009F0301    E8 06000000     call 009F030C</p>
+<p>009F0360    FFD4            call esp</p>
+<p>20：未知壳<br>00401F39   .  E8 8AFEFFFF   call UnPackMe.00401DC8                   ; \CreateProcessA</p>
+]]></content>
+      <categories>
+        <category>脱壳破解</category>
+      </categories>
+      <tags>
+        <tag>telock</tag>
+        <tag>molebox</tag>
+        <tag>CRYPToCRACk</tag>
+        <tag>pespin</tag>
+        <tag>GHF Protector</tag>
+        <tag>ACProtect</tag>
+        <tag>PEBundle</tag>
+        <tag>PUNiSHER</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>2014-02-28-逆向笔记【贰】</title>
     <url>/2014/02/28/2014-02-28-%E9%80%86%E5%90%91%E7%AC%94%E8%AE%B0%E3%80%90%E8%B4%B0%E3%80%91/</url>
     <content><![CDATA[<ol>
@@ -380,44 +418,6 @@
       <tags>
         <tag>工具</tag>
         <tag>原理</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2015-04-01-吾爱破解脱壳练习笔记</title>
-    <url>/2015/04/01/2015-04-01-%E5%90%BE%E7%88%B1%E7%A0%B4%E8%A7%A3%E8%84%B1%E5%A3%B3%E7%BB%83%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
-    <content><![CDATA[<blockquote>
-<p>主要记录吾爱破解脱壳练习集的部分练习过程及脱壳方法总结，对关键点记录备忘，实际上脱壳需要看壳所具体开启的保护措施（如穿山甲及Pespin的Debug-Block）。除穿山甲及部分壳记录遗失或未记录外整体总结不够完整，还有三四款未做深入研究，待有需求时再做记录补充。</p>
-</blockquote>
-<p>6 ：telock笔记<br>方式一：<br>最后一次异常法记录最后一次异常的位置，然后设置代码段内存访问断点。运行即在OEP处断下，dump之后使用importrec的telock插件修复即可。</p>
-<a id="more"></a>
-<p>方式二：<br>如果要是想手工绕过IAT加密，可以在程序运行之后查看IAT的起始位置，重新运行程序，在程序已经执行过硬件断点检查之后再设置对IAT的硬件读或访问断点。<br>运行到类似指令：<br>004698E7    8B85 53384000   mov eax,dword ptr ss:[ebp+403853]<br>004698ED    40              inc eax<br>004698EE    0F84 A8000000   je UnPackMe.0046999C<br>004698F4    80A5 FC2F4000 F&gt;and byte ptr ss:[ebp+402FFC],0FF<br>004698FB    0F84 9B000000   je UnPackMe.0046999C<br>00469901    80A5 FD2F4000 F&gt;and byte ptr ss:[ebp+402FFD],0FF<br>00469908    0F84 8E000000   je UnPackMe.0046999C<br>将004698FB及00469908处的je改成jne即可，再代码节断点结合最后一次异常法即可到OEP，之后就不用修复导入表了。</p>
-<p>8 ：molebox：<br>用oep定律可以直接到oep，但是这样的话importrec的修复不好。<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 455170，设置硬件访问断点，在一次赋值之后断下：<br>00455170  7C801D53  kernel32.LoadLibraryExA<br>从此开始单步跟踪，不取消断点：<br>00471666    FF15 40D84700   call dword ptr ds:[47D840]               ; kernel32.VirtualProtect<br>0047166C    85C0            test eax,eax<br>0047166E    75 0A           jnz short UnPackMe.0047167A<br>00471670    B9 0B0000EF     mov ecx,EF00000B<br>00471675    E8 9D2F0000     call UnPackMe.00474617<br>0047167A    8B4D 08         mov ecx,dword ptr ss:[ebp+8]<br>0047167D    8B55 F8         mov edx,dword ptr ss:[ebp-8]<br>00471680    8B02            mov eax,dword ptr ds:[edx]<br>00471682    8901            mov dword ptr ds:[ecx],eax<br>到了此处之后将00471682处修改IAT的指令给nop掉。到了oep之后dump即可。</p>
-<p>9 : CRYPToCRACk：<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 45512c。设置硬件访问断点：<br>00468331    5A              pop edx                                  ; UnPackMe.0045512C<br>00468332    59              pop ecx                                  ; UnPackMe.0045512C<br>00468333    5B              pop ebx                                  ; UnPackMe.0045512C<br>00468334    8B7C24 04       mov edi,dword ptr ss:[esp+0x4]           ; UnPackMe.00468384<br>00468338    893C8A          mov dword ptr ds:[edx+ecx<em>4],edi         ; UnPackMe.00468384<br>0046833B    807F 05 55      cmp byte ptr ds:[edi+0x5],0x55<br>在0046833B断下，修改00468338为mov dword ptr ds:[edx+ecx</em>4],eax，并新建eip即可绕过IAT加密。<br>同样ESP定律到达OEP。有时候会到达OEP的下一条指令。手工简单修复下堆栈及寄存器即可。</p>
-<p>10 : pespin笔记：<br>记录esp值如12ffc4，给VirtualProtect下memory access断点，可以看到有检查CC断点，不用管继续运行到VirtualProtect调用。运行到返回之后给之前的ESP-4=12ffc0值设置硬件访问断点。<br>断下来之后单步可见到以下形式的stolen code：<br>oep format:<br>xxx<br>jmp to yyy<br>yyy<br>jmp to zzz<br>记录并修复入口即可。</p>
-<p>13：GHF Protector笔记<br>给VirtualAlloc和VirtualProtect下断点，很快就可以到达第二层壳的位置，再利用ESP定律就可以到达真正的OEP，用LoadPE进行Dump时需要取消勾选 《完整转存：从磁盘粘贴文件头》  再用importrec修复时需要注意取消勾选《活动进程信息 使用来自硬盘的PE头》。</p>
-<p>14及18：Armadillo穿山甲<br>其实对OpenMutex函数下断，更改其第二次打开同名互斥量返回值即可快速将双进程变单进程，看到的其它方式略复杂。</p>
-<p>15: ACProtector<br>内存访问断点，直接两次到OEP，修复即可。</p>
-<p>16：Acprotect<br>内存访问断点，注意第一个下到原程序的数据段，第二个下到原程序代码段。不宜下到壳的段（第15个也类似）。</p>
-<p>17：PEBundle<br>ESP定律直接到OEP：<br>修复IAT时候看无效IAT的栈地址，重新运行下硬件访问断点。<br>单步不久看到此处判断是否加密IAT，je改成下图的jmp<br>00471FBF    85C0            test eax,eax<br>00471FC1    EB 25           jmp short UnPackMe.00471FE8<br>00471FC3    51              push ecx<br>od的自带就可以修复。</p>
-<p>19：PUNiSHER<br>data-code访问断点，断下后获取导入函数地址再运行到：<br>003C0890   /EB 33           jmp short 003C08C5</p>
-<p>009F022E    64:A1 00000000  mov eax,dword ptr fs:[0]<br>009F0234    50              push eax<br>009F0235    64:8925 0000000&gt;mov dword ptr fs:[0],esp<br>009F023C    83EC 68         sub esp,68<br>009F023F    53              push ebx<br>009F0240    56              push esi<br>009F0241    57              push edi<br>009F0242    8965 E8         mov dword ptr ss:[ebp-18],esp<br>009F0245    33DB            xor ebx,ebx<br>009F0247    895D FC         mov dword ptr ss:[ebp-4],ebx<br>009F024A    EB 04           jmp short 009F0250</p>
-<p>009F02B7    90              nop<br>009F02B8    FF15 7C214000   call dword ptr ds:[40217C]               ; msvcrt.<strong>set_app_type<br>009F02BE    59              pop ecx<br>009F02BF    830D 3C314000 F&gt;or dword ptr ds:[40313C],FFFFFFFF<br>009F02C6    830D 40314000 F&gt;or dword ptr ds:[403140],FFFFFFFF<br>009F02CD    FF15 78214000   call dword ptr ds:[402178]               ; msvcrt.</strong>p__fmode<br>009F02D3    8B0D 30314000   mov ecx,dword ptr ds:[403130]<br>009F02D9    8908            mov dword ptr ds:[eax],ecx<br>009F02DB    FF15 74214000   call dword ptr ds:[402174]               ; msvcrt.<strong>p</strong>commode<br>009F02E1    8B0D 2C314000   mov ecx,dword ptr ds:[40312C]<br>009F02E7    8908            mov dword ptr ds:[eax],ecx<br>009F02E9    A1 70214000     mov eax,dword ptr ds:[402170]<br>009F02EE    8B00            mov eax,dword ptr ds:[eax]<br>009F02F0    A3 38314000     mov dword ptr ds:[403138],eax<br>009F02F5    EB 04           jmp short 009F02FB</p>
-<p>009F0301    E8 06000000     call 009F030C</p>
-<p>009F0360    FFD4            call esp</p>
-<p>20：未知壳<br>00401F39   .  E8 8AFEFFFF   call UnPackMe.00401DC8                   ; \CreateProcessA</p>
-]]></content>
-      <categories>
-        <category>脱壳破解</category>
-      </categories>
-      <tags>
-        <tag>telock</tag>
-        <tag>molebox</tag>
-        <tag>CRYPToCRACk</tag>
-        <tag>pespin</tag>
-        <tag>GHF Protector</tag>
-        <tag>ACProtect</tag>
-        <tag>PEBundle</tag>
-        <tag>PUNiSHER</tag>
       </tags>
   </entry>
   <entry>
