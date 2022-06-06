@@ -1,70 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>2013-10-26-彩虹表破解开机密码、MD5算法等的原理</title>
-    <url>/2013/10/26/2013-10-26-%E5%BD%A9%E8%99%B9%E8%A1%A8%E7%A0%B4%E8%A7%A3%E5%BC%80%E6%9C%BA%E5%AF%86%E7%A0%81%E3%80%81MD5%E7%AE%97%E6%B3%95%E7%AD%89%E7%9A%84%E5%8E%9F%E7%90%86/</url>
-    <content><![CDATA[<blockquote>
-<p>&ensp;&ensp;&ensp;&ensp;或许对于大多数人来说，实际中并不需要了解这些理论，能够使用现成的工具就行，但是我个人觉得了解了这些可以将工具使用的更好，更何况理论研究中思维的碰撞也是一种乐趣。
-</blockquote>
-<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>&ensp;&ensp;&ensp;&ensp;彩虹表技术以时空折中理论为基础，即增大存储空间的开销缩短密码破解所需要的时间，时空折中的相关理论在密码学中应用很广，最初是在1980年，公钥密码学的提出者之一Hellman针对DES算法提出的一种攻击方式，经过不断地改进，2003年瑞典的Philippe Oechslin 在Making a Faster Cryptanalytic Time-Memory Trade-Off一文中提出了一种高效破解windows开机密码的时空折中算法，并命名为彩虹表，当然当时是针对Windows Xp开机认证的LM-HASH算法。除了破解开机密码，彩虹表目前还应用于散列密码如SHA、MD4、MD5等算法的破译，速度快、效率高、疗效有保证，Philippe的论文中提到：“1.4G的彩虹表可以在13.6s内破解99.9%的数字字母混合型的Windows密码”，具有很强的实用性。
-<a id="more"></a>
-
-<h2 id="彩虹表的原理"><a href="#彩虹表的原理" class="headerlink" title="彩虹表的原理"></a>彩虹表的原理</h2><p>&ensp;&ensp;&ensp;&ensp;设想一下这种情况：你已经拿到了一台服务器的Shell，并且通过HashDump工具获取了主机存储的密码的Hash值，怎么据此得到明文的用户密码搞定管理员权限呢（当然提权方法很多，如直接扔进在线解密网站或是用wce、minikazi之类的工具直接搞到原始明文密码，或者干脆绕过密码提权，这里只是做个示例），有两种很容易想到的方法：一种是字典破解，二是暴力穷举，这两种方式应用的都非常广，字典破解存储常用的用户名密码和其对应的密码Hash值，破解时只需根据需要破解的密码找到对应的明文密码即可，破解速度快，但是破译效率依赖于字典的构造，并且经常需要大量的存储空间存放字典文件；暴力破解法一般比较盲目，常见的形式就是依次计算1-N位字符串的密码值与需破解的密码进行比较，成功率全靠人品。这两种方法分别对空间和时间的要求比较大，久之，人类开始寻找折中的方法，彩虹表就是时空折中的典型，下面我就以彩虹表的生成和查表这两个步骤来介绍彩虹表破解的原理。
-
-<h3 id="造表过程"><a href="#造表过程" class="headerlink" title="造表过程"></a>造表过程</h3><p>&ensp;&ensp;&ensp;&ensp;此处仅介绍彩虹表的原理，对Hellman等人对时空折中算法的研究就不做详细介绍了，有兴趣的可以看一下Hellman在1980年发表的论文：A cryptanalytic time-memory trade-off，对理解彩虹表的构造过程会有很大帮助，Philippe Oechslin这人只是在Hellman的基础上做了稍微改进。
-<p>&ensp;&ensp;&ensp;&ensp;彩虹表实质上还是属于字典破解的一种，不过不再是简单的明文—密码的对应，为了节省字典存储空间，彩虹表省去了能通过计算得出的数据，达到这点的关键在于设计出一个函数族Rk（k=1、2、3、4……）将hash密文空间映射回明文的字符空间。
-<p>&ensp;&ensp;&ensp;&ensp;这么说很高端大气，一般没人听的懂，我当时也没懂神马映射、空间啥的，其实就是把hash密文再按照一定的规则转化成普通字符串的转化函数，例如字符串qshud的32位MD5密文e978c6b019ac22a3fd05b14d36621852，最简单的转化处理就是直接截取第一个字符e。因为e也可能是某些人的口令哦，再对字符e进行32位MD5运算得到密文e1671797c52e15f763380b45e841ec32，再取前两位字符e1，继续MD5运算得到cd3dc8b6cffb41e4163dcbd857ca87da，再取前三位cd3……，这时转换的函数族Rk其实就是截取密文的前k位，k=1、2、3、4…….照此法动作若干次（次数不限、本例为8次），得到5626cf5e6f1093c2840a16512f62c3b5，再取前八个字符 5626cf5e.
-<p>&ensp;&ensp;&ensp;&ensp;好了，下面我们就只需要存储字符串qshud和 5626cf5e就齐活了，刚才中间的字符数据e、e1、cd3… d989670就不用管了，它们属于可以通过qshud计算出的数据，不必进行存储，需要的话稍微花些时间计算即可，亲们必须先记着这种只存储首尾字符串的存储方式，下一节查表过程会继续讲到这种存储如何配合查表过程的。
-<p>&ensp;&ensp;&ensp;&ensp;上一段的例子只是针对MD5算法最简单的一种彩虹表，彩虹表可以处理的hash算法很多，进行的hash运算我们就记为H，函数族Rk（k=1、2、3、4……）都可以自定义，最初开始处理的明文再多选取一些，如图1中第一列的wikipedia、abcdefgh…passwd等，依次计算就得到了图1中的几条字符串链。
-<center>
-    <img style="border-radius: 0.3125em;
-    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src=图1.jpg>
-    <br>
-    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
-    display: inline-block;
-    color: #999;
-    padding: 2px;">图1 简化的彩虹表造表流程图</div>
-</center>
-<p>&ensp;&ensp;&ensp;&ensp; Ps：一条条的链并列的形状就像是彩虹的色带，这就是彩虹链（表）的由来。
-<p>&ensp;&ensp;&ensp;&ensp; 图1的例子使用的是自定义的R1、R2、R3函数，注意可不是上例提到的截取前几个字符形式的Rk函数，只是为了便于说明图1中的彩虹表虚构出的，具体转换方式不必深究。我们最后存储的只有wikipedia-rootroot、abcdefgh-myname…passwd-linux23，这就是彩虹表造表的大致过程，为了便于说明，示例比较简单，在实际造表中还需要考虑更多的因素，如最重要的Rk系列函数构造、每一条链的长度、造表需要的空间、存储格式等等。
-
-<h3 id="查表过程"><a href="#查表过程" class="headerlink" title="查表过程"></a>查表过程</h3><p>&ensp;&ensp;&ensp;&ensp;如果已经有了上文图一中生成的彩虹表，怎样找到hash函数H的一条密文re3xes对应的明文呢？解释这个破解过程需要明确一点：如果re3xes对应的明文属于彩虹表中的某条链，那么就有可能找到其对应的明文，注意这里的“属于某条链”不仅仅是指属于彩虹表的一条链中存放的头尾两个字符串，还包括这两个字符串中的中间数据，图一中中间计算的明文数据secret、jimbo也算是属于彩虹表的第一条链中，同理bernie、zurich属于第二条链，culture、crypto属于最后一条链，虽然彩虹表中只保存了每条链的链首链尾两个字符串，但是这些中间数据是可以根据链首字符串重新计算出来的。来看一下re3xes的破解过程，先猜测下密码re3xes对应的明文数据是某条链中间计算出数据的最后一个，注意第一、二条链的中间数据中的最后一个明文口令jimbo、zurich，依次经过H-R3运算得到保存的链尾字符串rootroot、myname，那么密文re3xes经过R3转换之后得到的数据就是某条链的链尾字符串，这点应该不难理解，如密文v0d$x对应的明文jimbo是第一条链最后一个中间明文数据，则v0d$x经过R3转换得到链尾字符串rootroot，但是密文re3xes经过R3函数转换之后得到的rambo并不是表中保存的任一条链的链尾字符串，这就说明re3xes对应的明文数据并不是某条链中间计算出数据的最后一个，猜测不成立，继续猜测re3xes对应的明文数据可能是某条链中间计算出数据的倒数第二个，同样可以很容易推出re3xes依次经过R2-H-R3转换之后得到的数据是某条链的链尾字符串，计算出re3xes经R2-H-R3转换的结果为linux23，通过搜索彩虹中存放的链尾字符串，得到linux23恰好是最后一条链的链尾，O(∩_∩)O~，到了这一步已经成功了一大半，下面就来根据存储的最后一条链链首的passwd重新计算出密文re3xes对应的明文吧，既然re3xes经R2-H-R3转换之后得到链尾的linux23，那么链首的passwd经H-R1-H运算后的结果culture就是re3xes对应的明文啦，小功告成~(≧▽≦)/~，流程图见下图2。
-<center>
-    <img style="border-radius: 0.3125em;
-    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src=图2.jpg>
-    <br>
-    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
-    display: inline-block;
-    color: #999;
-    padding: 2px;">图2 彩虹表破解密码示意图</div>
-</center>
-<p>&ensp;&ensp;&ensp;&ensp;注意：经过这种运算能得到链尾字符串的话只是成功了大半，还是有一小半人品不好的情况额，如果Rk函数设计的不好，存在一个密文字串qshud和re3xes经过R2-H-R3运算后都能得到linux23，那么在破解密文qshud的时候也会得出明文为culture，这种错误的情况称为“假警”，因为实际应用中的数据量都比较大，所以出现这种情况也是很正常的，这是只需要简单计算一下hash验证下即可，从另一个角度看数据量大的同时也能保证彩虹表的明文覆盖率更大，破解效果更好，出现“假警”情况的话就继续查表过程直至找到正确的明文或是找完整个表也没找到明文╮(╯_╰)╭……
-<p>&ensp;&ensp;&ensp;&ensp;ps：彩虹表类似于用大量随机字符串来保证对明文的覆盖率，所以Rk系列函数的构造直接影响能破解密码的范围。
-
-<h2 id="彩虹表的不足与改进"><a href="#彩虹表的不足与改进" class="headerlink" title="彩虹表的不足与改进"></a>彩虹表的不足与改进</h2><h3 id="不足：加盐情况处理不好"><a href="#不足：加盐情况处理不好" class="headerlink" title="不足：加盐情况处理不好"></a>不足：加盐情况处理不好</h3><p>&ensp;&ensp;&ensp;&ensp;现在很多加密方法计算密码Hash时，会在待处理的明文字符串后面加上一串随机的字符串再进行加密操作，开始密码验证时会先在用户输入的密码后加上相同的随机字串进行加密，结果再与存储的Hash进行比较。如明文口令是qshud，则附加上一段随机字符串再计算hash，正确口令的hash存储时也是这样的处理过程，这样做的一个好处就是可以在一定程度上防止彩虹表破译，假设随机字符串为“！@#￥”之类的特殊符号，在造表的过程中设计R函数就需要考虑到映射回这些特殊符号，这就大大增大了造表的空间和难度。
-
-<h3 id="不足：不能保证100-破解"><a href="#不足：不能保证100-破解" class="headerlink" title="不足：不能保证100%破解"></a>不足：不能保证100%破解</h3><p>&ensp;&ensp;&ensp;&ensp;造表过程中可以很明显的看出，只有明文字符串属于彩虹表的某条链上才能保证这条明文对应的Hash可以被破解，然而设计的再好也不能保证能够破解所有对应的Hash密码，实际中破解率99%以上就已经很实用了。
-
-<h3 id="改进：破解率100-的雷表"><a href="#改进：破解率100-的雷表" class="headerlink" title="改进：破解率100%的雷表"></a>改进：破解率100%的雷表</h3><p>&ensp;&ensp;&ensp;&ensp;上文已经提到了破解的效率并不能达到100%，而雷表就是对这点的改进，据称可以达到100%的破译，但是涉及的技术会更加复杂。目前这项技术还未被公开，网上也找不到详细的介绍。
-
-<h3 id="改进：显卡并行编程加速造表过程"><a href="#改进：显卡并行编程加速造表过程" class="headerlink" title="改进：显卡并行编程加速造表过程"></a>改进：显卡并行编程加速造表过程</h3><p>&ensp;&ensp;&ensp;&ensp;利用显卡多核的特点，设计并行的造表算法（CUDA并行编程），一般情况下能将造表速度提至7倍（以我一个很水的实现为起点~囧）或更高。
-
-<h2 id="彩虹表下载及相关工具"><a href="#彩虹表下载及相关工具" class="headerlink" title="彩虹表下载及相关工具"></a>彩虹表下载及相关工具</h2><h3 id="免费彩虹表下载："><a href="#免费彩虹表下载：" class="headerlink" title="免费彩虹表下载："></a>免费彩虹表下载：</h3><p>&ensp;&ensp;&ensp;&ensp;Free Rainbow Tables：http://www.freerainbowtables.com/en/tables/，提供了LM、NTLM、MD5、SHA1等彩虹表下载。
-
-<h3 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h3><p>&ensp;&ensp;&ensp;&ensp;Opcrack：有自己独特的彩虹表结构，支持LM，NTLM破解。
-<p>&ensp;&ensp;&ensp;&ensp;RainbowCrack：可以自己造表，支持LM, NTLM, MD5, SHA1, MYSQLSHA1,              HALFLMCHALL, NTLMCHALL的破解。
-<p>&ensp;&ensp;&ensp;&ensp;Cain：由Oxid.it开发的一个针对Microsoft操作系统的免费口令恢复工具。号称穷人使用的L0phtcrack……]]></content>
-      <categories>
-        <category>密码算法</category>
-      </categories>
-      <tags>
-        <tag>彩虹表</tag>
-        <tag>Hash算法</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>2013-08-07-HeapSpray+Rop绕过IE8的DEP防护--堆喷射技术利用超星老漏洞</title>
     <url>/2013/08/07/2013-08-07-HeapSpray-Rop%E7%BB%95%E8%BF%87IE8%E7%9A%84DEP%E9%98%B2%E6%8A%A4-%E5%A0%86%E5%96%B7%E5%B0%84%E6%8A%80%E6%9C%AF%E5%88%A9%E7%94%A8%E8%B6%85%E6%98%9F%E8%80%81%E6%BC%8F%E6%B4%9E/</url>
     <content><![CDATA[<blockquote>
@@ -324,6 +260,44 @@
       </tags>
   </entry>
   <entry>
+    <title>2015-04-01-吾爱破解脱壳练习笔记</title>
+    <url>/2015/04/01/2015-04-01-%E5%90%BE%E7%88%B1%E7%A0%B4%E8%A7%A3%E8%84%B1%E5%A3%B3%E7%BB%83%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
+    <content><![CDATA[<blockquote>
+<p>主要记录吾爱破解脱壳练习集的部分练习过程及脱壳方法总结，对关键点记录备忘，实际上脱壳需要看壳所具体开启的保护措施（如穿山甲及Pespin的Debug-Block）。除穿山甲及部分壳记录遗失或未记录外整体总结不够完整，还有三四款未做深入研究，待有需求时再做记录补充。</p>
+</blockquote>
+<p>6 ：telock笔记<br>方式一：<br>最后一次异常法记录最后一次异常的位置，然后设置代码段内存访问断点。运行即在OEP处断下，dump之后使用importrec的telock插件修复即可。</p>
+<a id="more"></a>
+<p>方式二：<br>如果要是想手工绕过IAT加密，可以在程序运行之后查看IAT的起始位置，重新运行程序，在程序已经执行过硬件断点检查之后再设置对IAT的硬件读或访问断点。<br>运行到类似指令：<br>004698E7    8B85 53384000   mov eax,dword ptr ss:[ebp+403853]<br>004698ED    40              inc eax<br>004698EE    0F84 A8000000   je UnPackMe.0046999C<br>004698F4    80A5 FC2F4000 F&gt;and byte ptr ss:[ebp+402FFC],0FF<br>004698FB    0F84 9B000000   je UnPackMe.0046999C<br>00469901    80A5 FD2F4000 F&gt;and byte ptr ss:[ebp+402FFD],0FF<br>00469908    0F84 8E000000   je UnPackMe.0046999C<br>将004698FB及00469908处的je改成jne即可，再代码节断点结合最后一次异常法即可到OEP，之后就不用修复导入表了。</p>
+<p>8 ：molebox：<br>用oep定律可以直接到oep，但是这样的话importrec的修复不好。<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 455170，设置硬件访问断点，在一次赋值之后断下：<br>00455170  7C801D53  kernel32.LoadLibraryExA<br>从此开始单步跟踪，不取消断点：<br>00471666    FF15 40D84700   call dword ptr ds:[47D840]               ; kernel32.VirtualProtect<br>0047166C    85C0            test eax,eax<br>0047166E    75 0A           jnz short UnPackMe.0047167A<br>00471670    B9 0B0000EF     mov ecx,EF00000B<br>00471675    E8 9D2F0000     call UnPackMe.00474617<br>0047167A    8B4D 08         mov ecx,dword ptr ss:[ebp+8]<br>0047167D    8B55 F8         mov edx,dword ptr ss:[ebp-8]<br>00471680    8B02            mov eax,dword ptr ds:[edx]<br>00471682    8901            mov dword ptr ds:[ecx],eax<br>到了此处之后将00471682处修改IAT的指令给nop掉。到了oep之后dump即可。</p>
+<p>9 : CRYPToCRACk：<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 45512c。设置硬件访问断点：<br>00468331    5A              pop edx                                  ; UnPackMe.0045512C<br>00468332    59              pop ecx                                  ; UnPackMe.0045512C<br>00468333    5B              pop ebx                                  ; UnPackMe.0045512C<br>00468334    8B7C24 04       mov edi,dword ptr ss:[esp+0x4]           ; UnPackMe.00468384<br>00468338    893C8A          mov dword ptr ds:[edx+ecx<em>4],edi         ; UnPackMe.00468384<br>0046833B    807F 05 55      cmp byte ptr ds:[edi+0x5],0x55<br>在0046833B断下，修改00468338为mov dword ptr ds:[edx+ecx</em>4],eax，并新建eip即可绕过IAT加密。<br>同样ESP定律到达OEP。有时候会到达OEP的下一条指令。手工简单修复下堆栈及寄存器即可。</p>
+<p>10 : pespin笔记：<br>记录esp值如12ffc4，给VirtualProtect下memory access断点，可以看到有检查CC断点，不用管继续运行到VirtualProtect调用。运行到返回之后给之前的ESP-4=12ffc0值设置硬件访问断点。<br>断下来之后单步可见到以下形式的stolen code：<br>oep format:<br>xxx<br>jmp to yyy<br>yyy<br>jmp to zzz<br>记录并修复入口即可。</p>
+<p>13：GHF Protector笔记<br>给VirtualAlloc和VirtualProtect下断点，很快就可以到达第二层壳的位置，再利用ESP定律就可以到达真正的OEP，用LoadPE进行Dump时需要取消勾选 《完整转存：从磁盘粘贴文件头》  再用importrec修复时需要注意取消勾选《活动进程信息 使用来自硬盘的PE头》。</p>
+<p>14及18：Armadillo穿山甲<br>其实对OpenMutex函数下断，更改其第二次打开同名互斥量返回值即可快速将双进程变单进程，看到的其它方式略复杂。</p>
+<p>15: ACProtector<br>内存访问断点，直接两次到OEP，修复即可。</p>
+<p>16：Acprotect<br>内存访问断点，注意第一个下到原程序的数据段，第二个下到原程序代码段。不宜下到壳的段（第15个也类似）。</p>
+<p>17：PEBundle<br>ESP定律直接到OEP：<br>修复IAT时候看无效IAT的栈地址，重新运行下硬件访问断点。<br>单步不久看到此处判断是否加密IAT，je改成下图的jmp<br>00471FBF    85C0            test eax,eax<br>00471FC1    EB 25           jmp short UnPackMe.00471FE8<br>00471FC3    51              push ecx<br>od的自带就可以修复。</p>
+<p>19：PUNiSHER<br>data-code访问断点，断下后获取导入函数地址再运行到：<br>003C0890   /EB 33           jmp short 003C08C5</p>
+<p>009F022E    64:A1 00000000  mov eax,dword ptr fs:[0]<br>009F0234    50              push eax<br>009F0235    64:8925 0000000&gt;mov dword ptr fs:[0],esp<br>009F023C    83EC 68         sub esp,68<br>009F023F    53              push ebx<br>009F0240    56              push esi<br>009F0241    57              push edi<br>009F0242    8965 E8         mov dword ptr ss:[ebp-18],esp<br>009F0245    33DB            xor ebx,ebx<br>009F0247    895D FC         mov dword ptr ss:[ebp-4],ebx<br>009F024A    EB 04           jmp short 009F0250</p>
+<p>009F02B7    90              nop<br>009F02B8    FF15 7C214000   call dword ptr ds:[40217C]               ; msvcrt.<strong>set_app_type<br>009F02BE    59              pop ecx<br>009F02BF    830D 3C314000 F&gt;or dword ptr ds:[40313C],FFFFFFFF<br>009F02C6    830D 40314000 F&gt;or dword ptr ds:[403140],FFFFFFFF<br>009F02CD    FF15 78214000   call dword ptr ds:[402178]               ; msvcrt.</strong>p__fmode<br>009F02D3    8B0D 30314000   mov ecx,dword ptr ds:[403130]<br>009F02D9    8908            mov dword ptr ds:[eax],ecx<br>009F02DB    FF15 74214000   call dword ptr ds:[402174]               ; msvcrt.<strong>p</strong>commode<br>009F02E1    8B0D 2C314000   mov ecx,dword ptr ds:[40312C]<br>009F02E7    8908            mov dword ptr ds:[eax],ecx<br>009F02E9    A1 70214000     mov eax,dword ptr ds:[402170]<br>009F02EE    8B00            mov eax,dword ptr ds:[eax]<br>009F02F0    A3 38314000     mov dword ptr ds:[403138],eax<br>009F02F5    EB 04           jmp short 009F02FB</p>
+<p>009F0301    E8 06000000     call 009F030C</p>
+<p>009F0360    FFD4            call esp</p>
+<p>20：未知壳<br>00401F39   .  E8 8AFEFFFF   call UnPackMe.00401DC8                   ; \CreateProcessA</p>
+]]></content>
+      <categories>
+        <category>脱壳破解</category>
+      </categories>
+      <tags>
+        <tag>telock</tag>
+        <tag>molebox</tag>
+        <tag>CRYPToCRACk</tag>
+        <tag>pespin</tag>
+        <tag>GHF Protector</tag>
+        <tag>ACProtect</tag>
+        <tag>PEBundle</tag>
+        <tag>PUNiSHER</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>2014-02-28-逆向笔记【贰】</title>
     <url>/2014/02/28/2014-02-28-%E9%80%86%E5%90%91%E7%AC%94%E8%AE%B0%E3%80%90%E8%B4%B0%E3%80%91/</url>
     <content><![CDATA[<ol>
@@ -383,41 +357,67 @@
       </tags>
   </entry>
   <entry>
-    <title>2015-04-01-吾爱破解脱壳练习笔记</title>
-    <url>/2015/04/01/2015-04-01-%E5%90%BE%E7%88%B1%E7%A0%B4%E8%A7%A3%E8%84%B1%E5%A3%B3%E7%BB%83%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
+    <title>2013-10-26-彩虹表破解开机密码、MD5算法等的原理</title>
+    <url>/2013/10/26/2013-10-26-%E5%BD%A9%E8%99%B9%E8%A1%A8%E7%A0%B4%E8%A7%A3%E5%BC%80%E6%9C%BA%E5%AF%86%E7%A0%81%E3%80%81MD5%E7%AE%97%E6%B3%95%E7%AD%89%E7%9A%84%E5%8E%9F%E7%90%86/</url>
     <content><![CDATA[<blockquote>
-<p>主要记录吾爱破解脱壳练习集的部分练习过程及脱壳方法总结，对关键点记录备忘，实际上脱壳需要看壳所具体开启的保护措施（如穿山甲及Pespin的Debug-Block）。除穿山甲及部分壳记录遗失或未记录外整体总结不够完整，还有三四款未做深入研究，待有需求时再做记录补充。</p>
+<p>&ensp;&ensp;&ensp;&ensp;或许对于大多数人来说，实际中并不需要了解这些理论，能够使用现成的工具就行，但是我个人觉得了解了这些可以将工具使用的更好，更何况理论研究中思维的碰撞也是一种乐趣。
 </blockquote>
-<p>6 ：telock笔记<br>方式一：<br>最后一次异常法记录最后一次异常的位置，然后设置代码段内存访问断点。运行即在OEP处断下，dump之后使用importrec的telock插件修复即可。</p>
+<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>&ensp;&ensp;&ensp;&ensp;彩虹表技术以时空折中理论为基础，即增大存储空间的开销缩短密码破解所需要的时间，时空折中的相关理论在密码学中应用很广，最初是在1980年，公钥密码学的提出者之一Hellman针对DES算法提出的一种攻击方式，经过不断地改进，2003年瑞典的Philippe Oechslin 在Making a Faster Cryptanalytic Time-Memory Trade-Off一文中提出了一种高效破解windows开机密码的时空折中算法，并命名为彩虹表，当然当时是针对Windows Xp开机认证的LM-HASH算法。除了破解开机密码，彩虹表目前还应用于散列密码如SHA、MD4、MD5等算法的破译，速度快、效率高、疗效有保证，Philippe的论文中提到：“1.4G的彩虹表可以在13.6s内破解99.9%的数字字母混合型的Windows密码”，具有很强的实用性。
 <a id="more"></a>
-<p>方式二：<br>如果要是想手工绕过IAT加密，可以在程序运行之后查看IAT的起始位置，重新运行程序，在程序已经执行过硬件断点检查之后再设置对IAT的硬件读或访问断点。<br>运行到类似指令：<br>004698E7    8B85 53384000   mov eax,dword ptr ss:[ebp+403853]<br>004698ED    40              inc eax<br>004698EE    0F84 A8000000   je UnPackMe.0046999C<br>004698F4    80A5 FC2F4000 F&gt;and byte ptr ss:[ebp+402FFC],0FF<br>004698FB    0F84 9B000000   je UnPackMe.0046999C<br>00469901    80A5 FD2F4000 F&gt;and byte ptr ss:[ebp+402FFD],0FF<br>00469908    0F84 8E000000   je UnPackMe.0046999C<br>将004698FB及00469908处的je改成jne即可，再代码节断点结合最后一次异常法即可到OEP，之后就不用修复导入表了。</p>
-<p>8 ：molebox：<br>用oep定律可以直接到oep，但是这样的话importrec的修复不好。<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 455170，设置硬件访问断点，在一次赋值之后断下：<br>00455170  7C801D53  kernel32.LoadLibraryExA<br>从此开始单步跟踪，不取消断点：<br>00471666    FF15 40D84700   call dword ptr ds:[47D840]               ; kernel32.VirtualProtect<br>0047166C    85C0            test eax,eax<br>0047166E    75 0A           jnz short UnPackMe.0047167A<br>00471670    B9 0B0000EF     mov ecx,EF00000B<br>00471675    E8 9D2F0000     call UnPackMe.00474617<br>0047167A    8B4D 08         mov ecx,dword ptr ss:[ebp+8]<br>0047167D    8B55 F8         mov edx,dword ptr ss:[ebp-8]<br>00471680    8B02            mov eax,dword ptr ds:[edx]<br>00471682    8901            mov dword ptr ds:[ecx],eax<br>到了此处之后将00471682处修改IAT的指令给nop掉。到了oep之后dump即可。</p>
-<p>9 : CRYPToCRACk：<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 45512c。设置硬件访问断点：<br>00468331    5A              pop edx                                  ; UnPackMe.0045512C<br>00468332    59              pop ecx                                  ; UnPackMe.0045512C<br>00468333    5B              pop ebx                                  ; UnPackMe.0045512C<br>00468334    8B7C24 04       mov edi,dword ptr ss:[esp+0x4]           ; UnPackMe.00468384<br>00468338    893C8A          mov dword ptr ds:[edx+ecx<em>4],edi         ; UnPackMe.00468384<br>0046833B    807F 05 55      cmp byte ptr ds:[edi+0x5],0x55<br>在0046833B断下，修改00468338为mov dword ptr ds:[edx+ecx</em>4],eax，并新建eip即可绕过IAT加密。<br>同样ESP定律到达OEP。有时候会到达OEP的下一条指令。手工简单修复下堆栈及寄存器即可。</p>
-<p>10 : pespin笔记：<br>记录esp值如12ffc4，给VirtualProtect下memory access断点，可以看到有检查CC断点，不用管继续运行到VirtualProtect调用。运行到返回之后给之前的ESP-4=12ffc0值设置硬件访问断点。<br>断下来之后单步可见到以下形式的stolen code：<br>oep format:<br>xxx<br>jmp to yyy<br>yyy<br>jmp to zzz<br>记录并修复入口即可。</p>
-<p>13：GHF Protector笔记<br>给VirtualAlloc和VirtualProtect下断点，很快就可以到达第二层壳的位置，再利用ESP定律就可以到达真正的OEP，用LoadPE进行Dump时需要取消勾选 《完整转存：从磁盘粘贴文件头》  再用importrec修复时需要注意取消勾选《活动进程信息 使用来自硬盘的PE头》。</p>
-<p>14及18：Armadillo穿山甲<br>其实对OpenMutex函数下断，更改其第二次打开同名互斥量返回值即可快速将双进程变单进程，看到的其它方式略复杂。</p>
-<p>15: ACProtector<br>内存访问断点，直接两次到OEP，修复即可。</p>
-<p>16：Acprotect<br>内存访问断点，注意第一个下到原程序的数据段，第二个下到原程序代码段。不宜下到壳的段（第15个也类似）。</p>
-<p>17：PEBundle<br>ESP定律直接到OEP：<br>修复IAT时候看无效IAT的栈地址，重新运行下硬件访问断点。<br>单步不久看到此处判断是否加密IAT，je改成下图的jmp<br>00471FBF    85C0            test eax,eax<br>00471FC1    EB 25           jmp short UnPackMe.00471FE8<br>00471FC3    51              push ecx<br>od的自带就可以修复。</p>
-<p>19：PUNiSHER<br>data-code访问断点，断下后获取导入函数地址再运行到：<br>003C0890   /EB 33           jmp short 003C08C5</p>
-<p>009F022E    64:A1 00000000  mov eax,dword ptr fs:[0]<br>009F0234    50              push eax<br>009F0235    64:8925 0000000&gt;mov dword ptr fs:[0],esp<br>009F023C    83EC 68         sub esp,68<br>009F023F    53              push ebx<br>009F0240    56              push esi<br>009F0241    57              push edi<br>009F0242    8965 E8         mov dword ptr ss:[ebp-18],esp<br>009F0245    33DB            xor ebx,ebx<br>009F0247    895D FC         mov dword ptr ss:[ebp-4],ebx<br>009F024A    EB 04           jmp short 009F0250</p>
-<p>009F02B7    90              nop<br>009F02B8    FF15 7C214000   call dword ptr ds:[40217C]               ; msvcrt.<strong>set_app_type<br>009F02BE    59              pop ecx<br>009F02BF    830D 3C314000 F&gt;or dword ptr ds:[40313C],FFFFFFFF<br>009F02C6    830D 40314000 F&gt;or dword ptr ds:[403140],FFFFFFFF<br>009F02CD    FF15 78214000   call dword ptr ds:[402178]               ; msvcrt.</strong>p__fmode<br>009F02D3    8B0D 30314000   mov ecx,dword ptr ds:[403130]<br>009F02D9    8908            mov dword ptr ds:[eax],ecx<br>009F02DB    FF15 74214000   call dword ptr ds:[402174]               ; msvcrt.<strong>p</strong>commode<br>009F02E1    8B0D 2C314000   mov ecx,dword ptr ds:[40312C]<br>009F02E7    8908            mov dword ptr ds:[eax],ecx<br>009F02E9    A1 70214000     mov eax,dword ptr ds:[402170]<br>009F02EE    8B00            mov eax,dword ptr ds:[eax]<br>009F02F0    A3 38314000     mov dword ptr ds:[403138],eax<br>009F02F5    EB 04           jmp short 009F02FB</p>
-<p>009F0301    E8 06000000     call 009F030C</p>
-<p>009F0360    FFD4            call esp</p>
-<p>20：未知壳<br>00401F39   .  E8 8AFEFFFF   call UnPackMe.00401DC8                   ; \CreateProcessA</p>
-]]></content>
+
+<h2 id="彩虹表的原理"><a href="#彩虹表的原理" class="headerlink" title="彩虹表的原理"></a>彩虹表的原理</h2><p>&ensp;&ensp;&ensp;&ensp;设想一下这种情况：你已经拿到了一台服务器的Shell，并且通过HashDump工具获取了主机存储的密码的Hash值，怎么据此得到明文的用户密码搞定管理员权限呢（当然提权方法很多，如直接扔进在线解密网站或是用wce、minikazi之类的工具直接搞到原始明文密码，或者干脆绕过密码提权，这里只是做个示例），有两种很容易想到的方法：一种是字典破解，二是暴力穷举，这两种方式应用的都非常广，字典破解存储常用的用户名密码和其对应的密码Hash值，破解时只需根据需要破解的密码找到对应的明文密码即可，破解速度快，但是破译效率依赖于字典的构造，并且经常需要大量的存储空间存放字典文件；暴力破解法一般比较盲目，常见的形式就是依次计算1-N位字符串的密码值与需破解的密码进行比较，成功率全靠人品。这两种方法分别对空间和时间的要求比较大，久之，人类开始寻找折中的方法，彩虹表就是时空折中的典型，下面我就以彩虹表的生成和查表这两个步骤来介绍彩虹表破解的原理。
+
+<h3 id="造表过程"><a href="#造表过程" class="headerlink" title="造表过程"></a>造表过程</h3><p>&ensp;&ensp;&ensp;&ensp;此处仅介绍彩虹表的原理，对Hellman等人对时空折中算法的研究就不做详细介绍了，有兴趣的可以看一下Hellman在1980年发表的论文：A cryptanalytic time-memory trade-off，对理解彩虹表的构造过程会有很大帮助，Philippe Oechslin这人只是在Hellman的基础上做了稍微改进。
+<p>&ensp;&ensp;&ensp;&ensp;彩虹表实质上还是属于字典破解的一种，不过不再是简单的明文—密码的对应，为了节省字典存储空间，彩虹表省去了能通过计算得出的数据，达到这点的关键在于设计出一个函数族Rk（k=1、2、3、4……）将hash密文空间映射回明文的字符空间。
+<p>&ensp;&ensp;&ensp;&ensp;这么说很高端大气，一般没人听的懂，我当时也没懂神马映射、空间啥的，其实就是把hash密文再按照一定的规则转化成普通字符串的转化函数，例如字符串qshud的32位MD5密文e978c6b019ac22a3fd05b14d36621852，最简单的转化处理就是直接截取第一个字符e。因为e也可能是某些人的口令哦，再对字符e进行32位MD5运算得到密文e1671797c52e15f763380b45e841ec32，再取前两位字符e1，继续MD5运算得到cd3dc8b6cffb41e4163dcbd857ca87da，再取前三位cd3……，这时转换的函数族Rk其实就是截取密文的前k位，k=1、2、3、4…….照此法动作若干次（次数不限、本例为8次），得到5626cf5e6f1093c2840a16512f62c3b5，再取前八个字符 5626cf5e.
+<p>&ensp;&ensp;&ensp;&ensp;好了，下面我们就只需要存储字符串qshud和 5626cf5e就齐活了，刚才中间的字符数据e、e1、cd3… d989670就不用管了，它们属于可以通过qshud计算出的数据，不必进行存储，需要的话稍微花些时间计算即可，亲们必须先记着这种只存储首尾字符串的存储方式，下一节查表过程会继续讲到这种存储如何配合查表过程的。
+<p>&ensp;&ensp;&ensp;&ensp;上一段的例子只是针对MD5算法最简单的一种彩虹表，彩虹表可以处理的hash算法很多，进行的hash运算我们就记为H，函数族Rk（k=1、2、3、4……）都可以自定义，最初开始处理的明文再多选取一些，如图1中第一列的wikipedia、abcdefgh…passwd等，依次计算就得到了图1中的几条字符串链。
+<center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src=图1.jpg>
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">图1 简化的彩虹表造表流程图</div>
+</center>
+<p>&ensp;&ensp;&ensp;&ensp; Ps：一条条的链并列的形状就像是彩虹的色带，这就是彩虹链（表）的由来。
+<p>&ensp;&ensp;&ensp;&ensp; 图1的例子使用的是自定义的R1、R2、R3函数，注意可不是上例提到的截取前几个字符形式的Rk函数，只是为了便于说明图1中的彩虹表虚构出的，具体转换方式不必深究。我们最后存储的只有wikipedia-rootroot、abcdefgh-myname…passwd-linux23，这就是彩虹表造表的大致过程，为了便于说明，示例比较简单，在实际造表中还需要考虑更多的因素，如最重要的Rk系列函数构造、每一条链的长度、造表需要的空间、存储格式等等。
+
+<h3 id="查表过程"><a href="#查表过程" class="headerlink" title="查表过程"></a>查表过程</h3><p>&ensp;&ensp;&ensp;&ensp;如果已经有了上文图一中生成的彩虹表，怎样找到hash函数H的一条密文re3xes对应的明文呢？解释这个破解过程需要明确一点：如果re3xes对应的明文属于彩虹表中的某条链，那么就有可能找到其对应的明文，注意这里的“属于某条链”不仅仅是指属于彩虹表的一条链中存放的头尾两个字符串，还包括这两个字符串中的中间数据，图一中中间计算的明文数据secret、jimbo也算是属于彩虹表的第一条链中，同理bernie、zurich属于第二条链，culture、crypto属于最后一条链，虽然彩虹表中只保存了每条链的链首链尾两个字符串，但是这些中间数据是可以根据链首字符串重新计算出来的。来看一下re3xes的破解过程，先猜测下密码re3xes对应的明文数据是某条链中间计算出数据的最后一个，注意第一、二条链的中间数据中的最后一个明文口令jimbo、zurich，依次经过H-R3运算得到保存的链尾字符串rootroot、myname，那么密文re3xes经过R3转换之后得到的数据就是某条链的链尾字符串，这点应该不难理解，如密文v0d$x对应的明文jimbo是第一条链最后一个中间明文数据，则v0d$x经过R3转换得到链尾字符串rootroot，但是密文re3xes经过R3函数转换之后得到的rambo并不是表中保存的任一条链的链尾字符串，这就说明re3xes对应的明文数据并不是某条链中间计算出数据的最后一个，猜测不成立，继续猜测re3xes对应的明文数据可能是某条链中间计算出数据的倒数第二个，同样可以很容易推出re3xes依次经过R2-H-R3转换之后得到的数据是某条链的链尾字符串，计算出re3xes经R2-H-R3转换的结果为linux23，通过搜索彩虹中存放的链尾字符串，得到linux23恰好是最后一条链的链尾，O(∩_∩)O~，到了这一步已经成功了一大半，下面就来根据存储的最后一条链链首的passwd重新计算出密文re3xes对应的明文吧，既然re3xes经R2-H-R3转换之后得到链尾的linux23，那么链首的passwd经H-R1-H运算后的结果culture就是re3xes对应的明文啦，小功告成~(≧▽≦)/~，流程图见下图2。
+<center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src=图2.jpg>
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;">图2 彩虹表破解密码示意图</div>
+</center>
+<p>&ensp;&ensp;&ensp;&ensp;注意：经过这种运算能得到链尾字符串的话只是成功了大半，还是有一小半人品不好的情况额，如果Rk函数设计的不好，存在一个密文字串qshud和re3xes经过R2-H-R3运算后都能得到linux23，那么在破解密文qshud的时候也会得出明文为culture，这种错误的情况称为“假警”，因为实际应用中的数据量都比较大，所以出现这种情况也是很正常的，这是只需要简单计算一下hash验证下即可，从另一个角度看数据量大的同时也能保证彩虹表的明文覆盖率更大，破解效果更好，出现“假警”情况的话就继续查表过程直至找到正确的明文或是找完整个表也没找到明文╮(╯_╰)╭……
+<p>&ensp;&ensp;&ensp;&ensp;ps：彩虹表类似于用大量随机字符串来保证对明文的覆盖率，所以Rk系列函数的构造直接影响能破解密码的范围。
+
+<h2 id="彩虹表的不足与改进"><a href="#彩虹表的不足与改进" class="headerlink" title="彩虹表的不足与改进"></a>彩虹表的不足与改进</h2><h3 id="不足：加盐情况处理不好"><a href="#不足：加盐情况处理不好" class="headerlink" title="不足：加盐情况处理不好"></a>不足：加盐情况处理不好</h3><p>&ensp;&ensp;&ensp;&ensp;现在很多加密方法计算密码Hash时，会在待处理的明文字符串后面加上一串随机的字符串再进行加密操作，开始密码验证时会先在用户输入的密码后加上相同的随机字串进行加密，结果再与存储的Hash进行比较。如明文口令是qshud，则附加上一段随机字符串再计算hash，正确口令的hash存储时也是这样的处理过程，这样做的一个好处就是可以在一定程度上防止彩虹表破译，假设随机字符串为“！@#￥”之类的特殊符号，在造表的过程中设计R函数就需要考虑到映射回这些特殊符号，这就大大增大了造表的空间和难度。
+
+<h3 id="不足：不能保证100-破解"><a href="#不足：不能保证100-破解" class="headerlink" title="不足：不能保证100%破解"></a>不足：不能保证100%破解</h3><p>&ensp;&ensp;&ensp;&ensp;造表过程中可以很明显的看出，只有明文字符串属于彩虹表的某条链上才能保证这条明文对应的Hash可以被破解，然而设计的再好也不能保证能够破解所有对应的Hash密码，实际中破解率99%以上就已经很实用了。
+
+<h3 id="改进：破解率100-的雷表"><a href="#改进：破解率100-的雷表" class="headerlink" title="改进：破解率100%的雷表"></a>改进：破解率100%的雷表</h3><p>&ensp;&ensp;&ensp;&ensp;上文已经提到了破解的效率并不能达到100%，而雷表就是对这点的改进，据称可以达到100%的破译，但是涉及的技术会更加复杂。目前这项技术还未被公开，网上也找不到详细的介绍。
+
+<h3 id="改进：显卡并行编程加速造表过程"><a href="#改进：显卡并行编程加速造表过程" class="headerlink" title="改进：显卡并行编程加速造表过程"></a>改进：显卡并行编程加速造表过程</h3><p>&ensp;&ensp;&ensp;&ensp;利用显卡多核的特点，设计并行的造表算法（CUDA并行编程），一般情况下能将造表速度提至7倍（以我一个很水的实现为起点~囧）或更高。
+
+<h2 id="彩虹表下载及相关工具"><a href="#彩虹表下载及相关工具" class="headerlink" title="彩虹表下载及相关工具"></a>彩虹表下载及相关工具</h2><h3 id="免费彩虹表下载："><a href="#免费彩虹表下载：" class="headerlink" title="免费彩虹表下载："></a>免费彩虹表下载：</h3><p>&ensp;&ensp;&ensp;&ensp;Free Rainbow Tables：http://www.freerainbowtables.com/en/tables/，提供了LM、NTLM、MD5、SHA1等彩虹表下载。
+
+<h3 id="工具："><a href="#工具：" class="headerlink" title="工具："></a>工具：</h3><p>&ensp;&ensp;&ensp;&ensp;Opcrack：有自己独特的彩虹表结构，支持LM，NTLM破解。
+<p>&ensp;&ensp;&ensp;&ensp;RainbowCrack：可以自己造表，支持LM, NTLM, MD5, SHA1, MYSQLSHA1,              HALFLMCHALL, NTLMCHALL的破解。
+<p>&ensp;&ensp;&ensp;&ensp;Cain：由Oxid.it开发的一个针对Microsoft操作系统的免费口令恢复工具。号称穷人使用的L0phtcrack……]]></content>
       <categories>
-        <category>脱壳破解</category>
+        <category>密码算法</category>
       </categories>
       <tags>
-        <tag>telock</tag>
-        <tag>molebox</tag>
-        <tag>CRYPToCRACk</tag>
-        <tag>pespin</tag>
-        <tag>GHF Protector</tag>
-        <tag>ACProtect</tag>
-        <tag>PEBundle</tag>
-        <tag>PUNiSHER</tag>
+        <tag>彩虹表</tag>
+        <tag>Hash算法</tag>
       </tags>
   </entry>
   <entry>
@@ -585,111 +585,6 @@
       </tags>
   </entry>
   <entry>
-    <title>2017-09-30-深入剖析：利用Flash漏洞传播的小马样本分析</title>
-    <url>/2017/09/30/2017-09-30-%E6%B7%B1%E5%85%A5%E5%89%96%E6%9E%90%EF%BC%9A%E5%88%A9%E7%94%A8Flash%E6%BC%8F%E6%B4%9E%E4%BC%A0%E6%92%AD%E7%9A%84%E5%B0%8F%E9%A9%AC%E6%A0%B7%E6%9C%AC%E5%88%86%E6%9E%90/</url>
-    <content><![CDATA[<blockquote>
-<p>&ensp;&ensp;&ensp;&ensp;原文以前首发到安全客了，这里备份一下，这是一个利用Flash漏洞CVE-2015-8651进行传播的病毒程序，关于这个Flash漏洞网上已经有了详细的分析报告，这里关注下利用这个漏洞进行传播的样本行为、通信加密方式等。
-</blockquote>
-<a id="more"></a>
-<h2 id="基本信息"><a href="#基本信息" class="headerlink" title="基本信息"></a>基本信息</h2><p>&ensp;&ensp;&ensp;&ensp;样本基本文件信息如下：
-
-<p><img src="0.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;首先通过对样本进行静态分析发现，该样本本身采用了大量的函数间接跳转、字符串混淆等措施：
-
-<p><img src="1.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;除此之外，样本还对病毒主题代码进行了内存解析执行的方式，使用静态分析方式无法定位到样本的关键代码，极大的增加了代码静态分析的难度，所以主要通过调试分析其恶意行为。
-
-<h2 id="样本行为分析"><a href="#样本行为分析" class="headerlink" title="样本行为分析"></a>样本行为分析</h2><h3 id="内存解析执行关键代码"><a href="#内存解析执行关键代码" class="headerlink" title="内存解析执行关键代码"></a>内存解析执行关键代码</h3><p>&ensp;&ensp;&ensp;&ensp;样本首先将本身打包的病毒主题代码重新解密拷贝到自身的运行空间，然后使用内存解析执行方式获取实际运行需要的导入表函数地址，对其代码空间中引用的函数地址进行修复：
-
-<p><img src="2.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;最终执行的代码如下图所示：
-
-<p><img src="3.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;可以看到，病毒主题代码也经过了大量的代码混淆操作，给调试过程增加了很大的难度。
-
-<h3 id="注入msiexec进程"><a href="#注入msiexec进程" class="headerlink" title="注入msiexec进程"></a>注入msiexec进程</h3><p>&ensp;&ensp;&ensp;&ensp;解密出的样本主功能代码首先创建msiexec.exe进程，msiexec.exe为系统进程，是Windows Installer的一部分。用于安装Windows Installer安装包（MSI），此处病毒样本用于伪装自身恶意代码到合法进程中，并将下一步劫持进程后运行的病毒Shellcode注入到该进程空间：
-
-<p><img src="4.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;替换其进程OEP处代码用于加载解析执行病毒Shellcode部分，下图所示为被替换之后的msiexec.exe进程入口点代码：
-
-<p><img src="5.png" alt=""></p>
-<h3 id="模糊API调用"><a href="#模糊API调用" class="headerlink" title="模糊API调用"></a>模糊API调用</h3><p>&ensp;&ensp;&ensp;&ensp;注入到msiexec.exe进程的病毒Shellcode代码首先根据保存的API名称Hash值获取到后续调用的API函数地址，然后判断API函数入口点代码类型判断是否需要对其进行间接调用：
-
-<p><img src="6.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;构造API函数入口代码，增加了调用某些敏感API函数的隐蔽性，导致一些API入口断点及API Hook检测机制失效：
-
-<p><img src="7.png" alt=""></p>
-<h3 id="检测虚拟机进程"><a href="#检测虚拟机进程" class="headerlink" title="检测虚拟机进程"></a>检测虚拟机进程</h3><p>&ensp;&ensp;&ensp;&ensp;通过调用CreateToolHelp32Snapshot系列函数等枚举进程：
-
-<p><img src="8.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;根据进程名称算出CRC值进行判断检查是否在虚拟机内，如果检测到运行环境不适合则选择持续调用Sleep函数暂停进程运行，如下图中虚拟机中vmtools进程被检测到：
-
-<p><img src="9.png" alt=""></p>
-<h3 id="设置自启动"><a href="#设置自启动" class="headerlink" title="设置自启动"></a>设置自启动</h3><p>&ensp;&ensp;&ensp;&ensp;该样本首先向“C:\Users\用户名\AppData\Roaming”目录下复制自身，复制的文件名为WindowsSidebarT.exe，用于伪装成Win7操作系统的小工具进程：
-
-<p><img src="10.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;最终设置注册表项完成自启动行为：
-
-<p><img src="11.png" alt=""></p>
-<h3 id="查询Windows-Defender等设置"><a href="#查询Windows-Defender等设置" class="headerlink" title="查询Windows Defender等设置"></a>查询Windows Defender等设置</h3><p>&ensp;&ensp;&ensp;&ensp;通过服务及注册表设置情况查询Windows Defender反间谍软件的配置情况：
-
-<p><img src="12.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;设置关闭Windows Defender服务：
-
-<p><img src="13.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;执行完毕该部分代码之后可以看到服务被禁用：
-
-<p><img src="14.png" alt=""></p>
-<h3 id="主机信息搜集"><a href="#主机信息搜集" class="headerlink" title="主机信息搜集"></a>主机信息搜集</h3><p>&ensp;&ensp;&ensp;&ensp;获取系统盘信息：
-
-<p><img src="15.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;获取用户登录信息：
-
-<p><img src="16.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;获取系统信息：
-
-<p><img src="17.png" alt=""></p>
-<h3 id="文件校验"><a href="#文件校验" class="headerlink" title="文件校验"></a>文件校验</h3><p>&ensp;&ensp;&ensp;&ensp;读取磁盘上的文件并计算其MD5值，最终该MD5值将被发送到木马控制端，猜测是用来对木马回连信息进行认证以及木马服务端校验：
-
-<p><img src="18.png" alt=""></p>
-<h2 id="通信流程分析"><a href="#通信流程分析" class="headerlink" title="通信流程分析"></a>通信流程分析</h2><h3 id="木马回连过程"><a href="#木马回连过程" class="headerlink" title="木马回连过程"></a>木马回连过程</h3><p>&ensp;&ensp;&ensp;&ensp;首先解析回连域名pationare.bit绑定的IP地址（该样本中存在备用域名avaneredge.bit），并连接域名解析结果中的IP地址进行建连操作：
-
-<p><img src="19.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;目前发现域名pationare.bit绑定了54.213.220.57、54.148.88.132、49.51.35.142这三个IP地址，备用域名avaneredge.bit也绑定了54.213.220.57。除此之外样本还会从保存的IP地址列表中随机选取进行连接尝试，但在针对该样本的分析过程中样本均未能与该IP列表中的地址成功建立连接，疑似其备用的C&C服务器：
-
-<p><img src="20.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;成功与C&C服务器建立连接之后，样本采用Http协议与控制端进行通信，用于隐藏通信流量：
-
-<p><img src="21.png" alt=""></p>
-<h3 id="通信数据加密流程"><a href="#通信数据加密流程" class="headerlink" title="通信数据加密流程"></a>通信数据加密流程</h3><p>&ensp;&ensp;&ensp;&ensp;样本主要采用简单异或及变异的AES算法对通信过程进行加密，向控制端主机发送的信息主要包括主机名、程序MD5值、进程列表等：
-
-<p><img src="22.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;样本首先填充发送数据的前0x14字节为随机值，然后将发送数据的每个字节逐个与前一个字节进行异或：
-
-<p><img src="23.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;后续即采用ECB模式、128bit分组的变异AES算法进行加密，首先从数据中解密出变异AES算法使用的密钥，并进行秘钥扩展（密钥扩展算法和标准AES有区别，下图第一行0x10字节即加密密钥，全部0xB0字节即为密钥扩展的结果）：
-
-<p><img src="24.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;填充需要加密的数据长度为分组长度的整数倍，该样本的填充算法为在需要填充n个字节的情况下随机生成n-1个字节填充，最后一个字节使用0xn填充。最后进行加密：
-
-<p><img src="25.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;加密结果再与Http协议头部进行组装发送：
-
-<p><img src="26.png" alt=""></p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>&ensp;&ensp;&ensp;&ensp;该样本的实现中使用了大量的代码混淆、模糊API调用等技术，通过一些API监控工具也没能得到其注入进程时调用的API信息，此外该样本还采取了一些常用的反调试反虚拟机技术对运行环境进行判断，给调试分析提升了很大的难度，整体功能如通信流量隐藏、传输加密等的实现也较为完善。
-
-<p>样本下载：<a href="样本.7z" target="_blank">下载链接</a><br>解压密码：infected</p>
-]]></content>
-      <categories>
-        <category>病毒样本</category>
-      </categories>
-      <tags>
-        <tag>注入</tag>
-        <tag>VM检测</tag>
-        <tag>加密机制</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>2017-11-28-漏洞分析：MS17-017 Windows内核提权漏洞Exploit分析</title>
     <url>/2017/11/28/2017-11-28-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%9AMS17-017-Windows%E5%86%85%E6%A0%B8%E6%8F%90%E6%9D%83%E6%BC%8F%E6%B4%9EExploit%E5%88%86%E6%9E%90/</url>
     <content><![CDATA[<blockquote>
@@ -797,6 +692,111 @@
       <tags>
         <tag>内核原理</tag>
         <tag>内核漏洞</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>2017-09-30-深入剖析：利用Flash漏洞传播的小马样本分析</title>
+    <url>/2017/09/30/2017-09-30-%E6%B7%B1%E5%85%A5%E5%89%96%E6%9E%90%EF%BC%9A%E5%88%A9%E7%94%A8Flash%E6%BC%8F%E6%B4%9E%E4%BC%A0%E6%92%AD%E7%9A%84%E5%B0%8F%E9%A9%AC%E6%A0%B7%E6%9C%AC%E5%88%86%E6%9E%90/</url>
+    <content><![CDATA[<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;原文以前首发到安全客了，这里备份一下，这是一个利用Flash漏洞CVE-2015-8651进行传播的病毒程序，关于这个Flash漏洞网上已经有了详细的分析报告，这里关注下利用这个漏洞进行传播的样本行为、通信加密方式等。
+</blockquote>
+<a id="more"></a>
+<h2 id="基本信息"><a href="#基本信息" class="headerlink" title="基本信息"></a>基本信息</h2><p>&ensp;&ensp;&ensp;&ensp;样本基本文件信息如下：
+
+<p><img src="0.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;首先通过对样本进行静态分析发现，该样本本身采用了大量的函数间接跳转、字符串混淆等措施：
+
+<p><img src="1.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;除此之外，样本还对病毒主题代码进行了内存解析执行的方式，使用静态分析方式无法定位到样本的关键代码，极大的增加了代码静态分析的难度，所以主要通过调试分析其恶意行为。
+
+<h2 id="样本行为分析"><a href="#样本行为分析" class="headerlink" title="样本行为分析"></a>样本行为分析</h2><h3 id="内存解析执行关键代码"><a href="#内存解析执行关键代码" class="headerlink" title="内存解析执行关键代码"></a>内存解析执行关键代码</h3><p>&ensp;&ensp;&ensp;&ensp;样本首先将本身打包的病毒主题代码重新解密拷贝到自身的运行空间，然后使用内存解析执行方式获取实际运行需要的导入表函数地址，对其代码空间中引用的函数地址进行修复：
+
+<p><img src="2.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;最终执行的代码如下图所示：
+
+<p><img src="3.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;可以看到，病毒主题代码也经过了大量的代码混淆操作，给调试过程增加了很大的难度。
+
+<h3 id="注入msiexec进程"><a href="#注入msiexec进程" class="headerlink" title="注入msiexec进程"></a>注入msiexec进程</h3><p>&ensp;&ensp;&ensp;&ensp;解密出的样本主功能代码首先创建msiexec.exe进程，msiexec.exe为系统进程，是Windows Installer的一部分。用于安装Windows Installer安装包（MSI），此处病毒样本用于伪装自身恶意代码到合法进程中，并将下一步劫持进程后运行的病毒Shellcode注入到该进程空间：
+
+<p><img src="4.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;替换其进程OEP处代码用于加载解析执行病毒Shellcode部分，下图所示为被替换之后的msiexec.exe进程入口点代码：
+
+<p><img src="5.png" alt=""></p>
+<h3 id="模糊API调用"><a href="#模糊API调用" class="headerlink" title="模糊API调用"></a>模糊API调用</h3><p>&ensp;&ensp;&ensp;&ensp;注入到msiexec.exe进程的病毒Shellcode代码首先根据保存的API名称Hash值获取到后续调用的API函数地址，然后判断API函数入口点代码类型判断是否需要对其进行间接调用：
+
+<p><img src="6.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;构造API函数入口代码，增加了调用某些敏感API函数的隐蔽性，导致一些API入口断点及API Hook检测机制失效：
+
+<p><img src="7.png" alt=""></p>
+<h3 id="检测虚拟机进程"><a href="#检测虚拟机进程" class="headerlink" title="检测虚拟机进程"></a>检测虚拟机进程</h3><p>&ensp;&ensp;&ensp;&ensp;通过调用CreateToolHelp32Snapshot系列函数等枚举进程：
+
+<p><img src="8.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;根据进程名称算出CRC值进行判断检查是否在虚拟机内，如果检测到运行环境不适合则选择持续调用Sleep函数暂停进程运行，如下图中虚拟机中vmtools进程被检测到：
+
+<p><img src="9.png" alt=""></p>
+<h3 id="设置自启动"><a href="#设置自启动" class="headerlink" title="设置自启动"></a>设置自启动</h3><p>&ensp;&ensp;&ensp;&ensp;该样本首先向“C:\Users\用户名\AppData\Roaming”目录下复制自身，复制的文件名为WindowsSidebarT.exe，用于伪装成Win7操作系统的小工具进程：
+
+<p><img src="10.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;最终设置注册表项完成自启动行为：
+
+<p><img src="11.png" alt=""></p>
+<h3 id="查询Windows-Defender等设置"><a href="#查询Windows-Defender等设置" class="headerlink" title="查询Windows Defender等设置"></a>查询Windows Defender等设置</h3><p>&ensp;&ensp;&ensp;&ensp;通过服务及注册表设置情况查询Windows Defender反间谍软件的配置情况：
+
+<p><img src="12.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;设置关闭Windows Defender服务：
+
+<p><img src="13.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;执行完毕该部分代码之后可以看到服务被禁用：
+
+<p><img src="14.png" alt=""></p>
+<h3 id="主机信息搜集"><a href="#主机信息搜集" class="headerlink" title="主机信息搜集"></a>主机信息搜集</h3><p>&ensp;&ensp;&ensp;&ensp;获取系统盘信息：
+
+<p><img src="15.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;获取用户登录信息：
+
+<p><img src="16.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;获取系统信息：
+
+<p><img src="17.png" alt=""></p>
+<h3 id="文件校验"><a href="#文件校验" class="headerlink" title="文件校验"></a>文件校验</h3><p>&ensp;&ensp;&ensp;&ensp;读取磁盘上的文件并计算其MD5值，最终该MD5值将被发送到木马控制端，猜测是用来对木马回连信息进行认证以及木马服务端校验：
+
+<p><img src="18.png" alt=""></p>
+<h2 id="通信流程分析"><a href="#通信流程分析" class="headerlink" title="通信流程分析"></a>通信流程分析</h2><h3 id="木马回连过程"><a href="#木马回连过程" class="headerlink" title="木马回连过程"></a>木马回连过程</h3><p>&ensp;&ensp;&ensp;&ensp;首先解析回连域名pationare.bit绑定的IP地址（该样本中存在备用域名avaneredge.bit），并连接域名解析结果中的IP地址进行建连操作：
+
+<p><img src="19.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;目前发现域名pationare.bit绑定了54.213.220.57、54.148.88.132、49.51.35.142这三个IP地址，备用域名avaneredge.bit也绑定了54.213.220.57。除此之外样本还会从保存的IP地址列表中随机选取进行连接尝试，但在针对该样本的分析过程中样本均未能与该IP列表中的地址成功建立连接，疑似其备用的C&C服务器：
+
+<p><img src="20.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;成功与C&C服务器建立连接之后，样本采用Http协议与控制端进行通信，用于隐藏通信流量：
+
+<p><img src="21.png" alt=""></p>
+<h3 id="通信数据加密流程"><a href="#通信数据加密流程" class="headerlink" title="通信数据加密流程"></a>通信数据加密流程</h3><p>&ensp;&ensp;&ensp;&ensp;样本主要采用简单异或及变异的AES算法对通信过程进行加密，向控制端主机发送的信息主要包括主机名、程序MD5值、进程列表等：
+
+<p><img src="22.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;样本首先填充发送数据的前0x14字节为随机值，然后将发送数据的每个字节逐个与前一个字节进行异或：
+
+<p><img src="23.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;后续即采用ECB模式、128bit分组的变异AES算法进行加密，首先从数据中解密出变异AES算法使用的密钥，并进行秘钥扩展（密钥扩展算法和标准AES有区别，下图第一行0x10字节即加密密钥，全部0xB0字节即为密钥扩展的结果）：
+
+<p><img src="24.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;填充需要加密的数据长度为分组长度的整数倍，该样本的填充算法为在需要填充n个字节的情况下随机生成n-1个字节填充，最后一个字节使用0xn填充。最后进行加密：
+
+<p><img src="25.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;加密结果再与Http协议头部进行组装发送：
+
+<p><img src="26.png" alt=""></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>&ensp;&ensp;&ensp;&ensp;该样本的实现中使用了大量的代码混淆、模糊API调用等技术，通过一些API监控工具也没能得到其注入进程时调用的API信息，此外该样本还采取了一些常用的反调试反虚拟机技术对运行环境进行判断，给调试分析提升了很大的难度，整体功能如通信流量隐藏、传输加密等的实现也较为完善。
+
+<p>样本下载：<a href="样本.7z" target="_blank">下载链接</a><br>解压密码：infected</p>
+]]></content>
+      <categories>
+        <category>病毒样本</category>
+      </categories>
+      <tags>
+        <tag>注入</tag>
+        <tag>VM检测</tag>
+        <tag>加密机制</tag>
       </tags>
   </entry>
   <entry>
@@ -1205,6 +1205,35 @@
       </tags>
   </entry>
   <entry>
+    <title>2019-10-22-记一次诡异的进程崩溃分析</title>
+    <url>/2019/10/20/2019-10-22-%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%AF%A1%E5%BC%82%E7%9A%84%E8%BF%9B%E7%A8%8B%E5%B4%A9%E6%BA%83%E5%88%86%E6%9E%90/</url>
+    <content><![CDATA[<blockquote>
+<p>无甚技术含量，且当时无法截图，自己记录备份用，大牛略过……</p>
+</blockquote>
+<h2 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h2><p>&ensp;&ensp;&ensp;&ensp;N个月前的某天正在沉迷于工作的时候，同事说公司财务电脑崩溃了，报了个奇怪的内存错误，让帮忙看看。之前去财务的时候曾经听财务说过这个问题，据说是Excel里面如果选中几个单元格再点击右键就会崩溃，同事帮重装了下Office之后，奇特的事情发生了，重启电脑之后资源管理器进程Explorer.exe闪现了下就崩溃无法进入桌面环境，当然不是我自己的电脑一般都建议重装了，无奈财务电脑里软件数据较多，无法重装。万般无奈之下只好接手看看情况了，毕竟关系到下月工资吃饭呢。。。
+<a id="more"></a>
+
+<hr>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>&ensp;&ensp;&ensp;&ensp;首先查看进程崩溃信息中，根据显示的异常号也看不出什么具体信息，但是能看到问题出在Explorer.exe进程中的m**.dll中（名字忘了，凑合看吧），该DLL是Office程序注册到Explorer.exe进程的组件，所以问题还是Office的问题。
+<p>&ensp;&ensp;&ensp;&ensp;因为Explorer.exe进程奔溃，无法进入到资源管理器，且主机上还装了数字杀软，我的Od变种出现即被报毒，导入调试工具都折腾了好久，首先Win+R调起CMD窗口，然后Dir尝试出U盘盘符，在命令行里运行我的Od，设置成默认调试器，因为进程早已崩溃，还需要重启再次触发，还好能够稳定触发该Bug，重启之后进程崩溃终于把我的Od挂起来了。然而更奇特的事情出现，Od在加载许久之后报错“m**.dll不存在”，这现象有点迷，明明刚还能在崩溃信息里查看到该DLL存在，在该DLL文件夹中dir也是可以看到DLL存在的，终于在尝试把这个“不存在“的dll拷贝出来分析的时候爆出了信息框：[“无法访问磁盘,数据错误(循环冗余检查)”!]
+<p>&ensp;&ensp;&ensp;&ensp;到此问题就清楚了，应该是该DLL所在的磁盘扇区出现了磁盘坏道，之前财务所说的Excel选中单元格右键时崩溃的现象也就可以解释了，应该是右键菜单调用的代码引用了磁盘坏道处的数据。而重装Office之后m**.dll覆盖了坏道位置，导致Explorer.exe进程引用该DLL时挂掉了。现在看其实发现该问题并不难，也根本不需要调试代码，最麻烦的反而是导入调试器。
+
+<hr>
+<h2 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h2><p>&ensp;&ensp;&ensp;&ensp;磁盘坏道一般分为逻辑坏道和物理坏道，如果时逻辑坏道还好说，可以尝试使用DiskGenius等工具修复，物理坏道也即磁盘损坏较麻烦，也可以使用一些工具屏蔽坏道。当然对于我司来说不差硬盘钱没必要这样折腾，数据就直接换个新硬盘克隆下旧的，现在硬盘也不贵。
+<p>&ensp;&ensp;&ensp;&ensp;克隆磁盘数据镜像一般Winhex（工具->磁盘工具->克隆磁盘）就足够用了，为了确保数据靠谱，我还专门进了个PE（推荐WEPE哦~）对拷磁盘数据，拷贝完之后还有最后一个问题，磁盘坏道数据无法正常导出，导致最终克隆的m**.dll数据错误，需要从正常的机器上重新拷贝一个dll过来，搞完收工~
+
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>&ensp;&ensp;&ensp;&ensp;这里还是遗留一些需深入研究的地方，为什么磁盘坏道数据损坏了该DLL仍然能被成功LoadLibrary呢？因为环境限制也一直没来及深究，此处就留个疑问吧。有了解的可以赐教下。]]></content>
+      <categories>
+        <category>取证相关</category>
+      </categories>
+      <tags>
+        <tag>修电脑</tag>
+        <tag>磁盘坏道</tag>
+        <tag>Winhex</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>2020-02-24-常见格式固件镜像转换编辑工具</title>
     <url>/2020/02/24/2020-02-24-%E5%B8%B8%E8%A7%81%E6%A0%BC%E5%BC%8F%E5%9B%BA%E4%BB%B6%E9%95%9C%E5%83%8F%E8%BD%AC%E6%8D%A2%E7%BC%96%E8%BE%91%E5%B7%A5%E5%85%B7/</url>
     <content><![CDATA[<blockquote>
@@ -1231,35 +1260,6 @@
         <tag>vmdk</tag>
         <tag>qcow2</tag>
         <tag>vhdx</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2019-10-22-记一次诡异的进程崩溃分析</title>
-    <url>/2019/10/20/2019-10-22-%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%AF%A1%E5%BC%82%E7%9A%84%E8%BF%9B%E7%A8%8B%E5%B4%A9%E6%BA%83%E5%88%86%E6%9E%90/</url>
-    <content><![CDATA[<blockquote>
-<p>无甚技术含量，且当时无法截图，自己记录备份用，大牛略过……</p>
-</blockquote>
-<h2 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h2><p>&ensp;&ensp;&ensp;&ensp;N个月前的某天正在沉迷于工作的时候，同事说公司财务电脑崩溃了，报了个奇怪的内存错误，让帮忙看看。之前去财务的时候曾经听财务说过这个问题，据说是Excel里面如果选中几个单元格再点击右键就会崩溃，同事帮重装了下Office之后，奇特的事情发生了，重启电脑之后资源管理器进程Explorer.exe闪现了下就崩溃无法进入桌面环境，当然不是我自己的电脑一般都建议重装了，无奈财务电脑里软件数据较多，无法重装。万般无奈之下只好接手看看情况了，毕竟关系到下月工资吃饭呢。。。
-<a id="more"></a>
-
-<hr>
-<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>&ensp;&ensp;&ensp;&ensp;首先查看进程崩溃信息中，根据显示的异常号也看不出什么具体信息，但是能看到问题出在Explorer.exe进程中的m**.dll中（名字忘了，凑合看吧），该DLL是Office程序注册到Explorer.exe进程的组件，所以问题还是Office的问题。
-<p>&ensp;&ensp;&ensp;&ensp;因为Explorer.exe进程奔溃，无法进入到资源管理器，且主机上还装了数字杀软，我的Od变种出现即被报毒，导入调试工具都折腾了好久，首先Win+R调起CMD窗口，然后Dir尝试出U盘盘符，在命令行里运行我的Od，设置成默认调试器，因为进程早已崩溃，还需要重启再次触发，还好能够稳定触发该Bug，重启之后进程崩溃终于把我的Od挂起来了。然而更奇特的事情出现，Od在加载许久之后报错“m**.dll不存在”，这现象有点迷，明明刚还能在崩溃信息里查看到该DLL存在，在该DLL文件夹中dir也是可以看到DLL存在的，终于在尝试把这个“不存在“的dll拷贝出来分析的时候爆出了信息框：[“无法访问磁盘,数据错误(循环冗余检查)”!]
-<p>&ensp;&ensp;&ensp;&ensp;到此问题就清楚了，应该是该DLL所在的磁盘扇区出现了磁盘坏道，之前财务所说的Excel选中单元格右键时崩溃的现象也就可以解释了，应该是右键菜单调用的代码引用了磁盘坏道处的数据。而重装Office之后m**.dll覆盖了坏道位置，导致Explorer.exe进程引用该DLL时挂掉了。现在看其实发现该问题并不难，也根本不需要调试代码，最麻烦的反而是导入调试器。
-
-<hr>
-<h2 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h2><p>&ensp;&ensp;&ensp;&ensp;磁盘坏道一般分为逻辑坏道和物理坏道，如果时逻辑坏道还好说，可以尝试使用DiskGenius等工具修复，物理坏道也即磁盘损坏较麻烦，也可以使用一些工具屏蔽坏道。当然对于我司来说不差硬盘钱没必要这样折腾，数据就直接换个新硬盘克隆下旧的，现在硬盘也不贵。
-<p>&ensp;&ensp;&ensp;&ensp;克隆磁盘数据镜像一般Winhex（工具->磁盘工具->克隆磁盘）就足够用了，为了确保数据靠谱，我还专门进了个PE（推荐WEPE哦~）对拷磁盘数据，拷贝完之后还有最后一个问题，磁盘坏道数据无法正常导出，导致最终克隆的m**.dll数据错误，需要从正常的机器上重新拷贝一个dll过来，搞完收工~
-
-<hr>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>&ensp;&ensp;&ensp;&ensp;这里还是遗留一些需深入研究的地方，为什么磁盘坏道数据损坏了该DLL仍然能被成功LoadLibrary呢？因为环境限制也一直没来及深究，此处就留个疑问吧。有了解的可以赐教下。]]></content>
-      <categories>
-        <category>取证相关</category>
-      </categories>
-      <tags>
-        <tag>Winhex</tag>
-        <tag>修电脑</tag>
-        <tag>磁盘坏道</tag>
       </tags>
   </entry>
   <entry>
@@ -1609,6 +1609,66 @@
       </tags>
   </entry>
   <entry>
+    <title>2022-06-06-hutrace工具系列第3篇之Linux应用</title>
+    <url>/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/</url>
+    <content><![CDATA[<center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src=图片1.png>
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;"></div>
+</center>
+
+<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公开的样例较少，内容偏少一点。
+</blockquote>
+<a id="more"></a>
+
+<h2 id="基本用法"><a href="#基本用法" class="headerlink" title="基本用法"></a>基本用法</h2><p>Linux下的hutrace使用与Windows基本一致：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># huhu @ huhu in ~/Desktop/my/build/bin64 [9:58:27] C:127</span><br><span class="line">$ ./hutrace</span><br><span class="line">ERROR: Usage error: </span><br><span class="line"> Usage:</span><br><span class="line"> -logdir              [     .]  Log directory to print library call data</span><br><span class="line"> -only_from_app       [ false]  Reports only library calls from the app</span><br><span class="line"> -trace_to_librarys   [    &quot;&quot;]  Trace specify librarys</span><br><span class="line"> -record_start_addr   [    &quot;&quot;]  record begin at start_addr</span><br><span class="line"> -record_end_addr     [    &quot;&quot;]  record finished at end_addr</span><br><span class="line"> -follow_children     [ false]  Trace child process</span><br><span class="line"> -print_ret_addr      [ false]  Print library call&apos;s return address</span><br><span class="line"> -print_ins_info      [ false]  Print instructions disassemble info</span><br><span class="line"> -print_ins_reg       [ false]  Print instructions disassemble reg</span><br><span class="line"> -print_ins_all       [ false]  Print instructions trace info</span><br><span class="line"> -print_syscall       [ false]  Print syscall info </span><br><span class="line"> -num_unknown_args    [     2]  Number of unknown libcall args to print</span><br><span class="line"> -num_max_args        [     6]  Maximum number of arguments to print</span><br><span class="line"> -config              [    &quot;&quot;]  The path to custom config file.</span><br><span class="line"> -ignore_underscore   [ false]  Ignores library routine names starting with &quot;_&quot;.</span><br><span class="line"> -only_to_lib         [    &quot;&quot;]  Only reports calls to the library &lt;lib_name&gt;. </span><br><span class="line"> -help                [ false]  Print this message.</span><br><span class="line"> -version             [ false]  Print version number.</span><br><span class="line"> -verbose             [     1]  Change verbosity.</span><br><span class="line"> -use_config          [  true]  Use config file</span><br></pre></td></tr></table></figure>
+<p>拿一个最简单的例子来演示，一个比较老的ctf的最简单题，flag解密后直接比较，不过其中夹杂了一些main函数等位置cc断点的检测：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ ./hutrace -only_from_app -print_ret_addr -print_ins_info -- ./noccbytes</span><br></pre></td></tr></table></figure>
+
+<p>查看trace得到的API记录：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">C7ffff3d8dbb7|7ffff3d8d8a0</span><br><span class="line">7ffff3d8d8a0:</span><br><span class="line">     jmp    &lt;rel&gt; qword ptr [0x00007ffff3f8ef98]</span><br><span class="line">J7ffff3d8d8a0|7ffff6829a50</span><br><span class="line">~~5820~~ libc.so.6!strcpy N:0x42</span><br><span class="line">    arg 1: WattoSays</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8dbbc,offset:0xbbc</span><br><span class="line">7ffff3d8dbbc:</span><br><span class="line">     lea    rdx, [rbp-0x30]</span><br><span class="line">     mov    rax, qword ptr [rbp-0x38]</span><br><span class="line">     mov    rsi, rdx</span><br><span class="line">     mov    rdi, rax</span><br><span class="line">     call   0x00007ffff3d8d8d0</span><br><span class="line"> and strcpy return value:  0x7fffffffda20 </span><br><span class="line">    arg 0: WattoSays</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line">C7ffff3d8dbca|7ffff3d8d8d0</span><br><span class="line">7ffff3d8d8d0:</span><br><span class="line">     jmp    &lt;rel&gt; qword ptr [0x00007ffff3f8efb0]</span><br><span class="line">J7ffff3d8d8d0|7ffff68235f0</span><br><span class="line">~~5820~~ libc.so.6!strcmp N:0x43                &lt;----最终解密的password在此比较</span><br><span class="line">    arg 0: 1234567890</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line">    arg 1: WattoSays</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8dbcf,offset:0xbcf</span><br><span class="line">7ffff3d8dbcf:</span><br><span class="line">     test   eax, eax</span><br><span class="line">     jnz    0x00007ffff3d8dbda</span><br><span class="line"> and strcmp return value:  0xffffffda </span><br><span class="line">7ffff3d8dbda:</span><br><span class="line">     lea    rdi, &lt;rel&gt; [0x00007ffff3d8de19]</span><br><span class="line">     call   0x00007ffff3d8d8f0</span><br><span class="line">C7ffff3d8dbe1|7ffff3d8d8f0</span><br><span class="line">J7ffff3d8d8f0|7ffff67f36a0</span><br><span class="line">~~5820~~ libc.so.6!puts N:0x44</span><br><span class="line">    arg 0: </span><br><span class="line">Wrong Password (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8dbe6,offset:0xbe6</span><br></pre></td></tr></table></figure>
+<p>当然ltrace也可以做到哦~只是hutrace得到的信息更为丰富。</p>
+<h2 id="多进程分析"><a href="#多进程分析" class="headerlink" title="多进程分析"></a>多进程分析</h2><p>Linux下进程创建方式比较多样，而Fork又有别于常规的进程创建方式，导致hutrace需要额外处理Linux上常见的Fork进程的记录问题，当然处理难度不大，来看下最简单的演示程序：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">result = fork();</span><br><span class="line">if(result == -1)</span><br><span class="line">&#123;</span><br><span class="line">   printf(&quot;Fork error\n&quot;);</span><br><span class="line">&#125;</span><br><span class="line">else if (result == 0)</span><br><span class="line">&#123;</span><br><span class="line">   printf(&quot;The returned value is %d In child process!! My PID is %d\n&quot;,result,getpid());</span><br><span class="line">&#125;</span><br><span class="line">else</span><br><span class="line">&#123;</span><br><span class="line">   printf(&quot;The returned value is %d In father process!! My PID is %d\n&quot;,result,getpid());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>开工：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ ./hutrace -only_from_app -print_ret_addr -print_ins_info -- ./myproctest.out</span><br><span class="line">The returned value is 7774 In father process!! My PID is 7773</span><br><span class="line">The returned value is 0 In child process!! My PID is 7774</span><br></pre></td></tr></table></figure>
+<p>我们只看下子进程的记录日志：</p>
+<p><img src="%E5%9B%BE%E7%89%872.png" alt=""></p>
+<p>常规方式的进程创建没啥特别的，不再说了，可惜Linux上dynamorio不支持Windows上的-syswide_on功能。</p>
+<h2 id="Linux-Syscall调用记录"><a href="#Linux-Syscall调用记录" class="headerlink" title="Linux Syscall调用记录"></a>Linux Syscall调用记录</h2><p>上一篇中介绍的windows系统调用使用常见相对小众，Linux下就比较常见了，hutrace在linux系统上同样默认不记录syscall调用信息，而且不在hutrace.config中设置参数信息的话只打印系统调用名称，只有设置了参数信息才会打印系统调用的参数，实际使用时和打印API函数以及上一篇Window应用中介绍的使用方式类似，在hutrace.config配置文件中添加对应syscall的参数信息：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hutrace.config文件中设置：</span><br><span class="line">int|syscall_read|LONG|__out hex^ARG2|int</span><br><span class="line">int|syscall_write|LONG|char *</span><br><span class="line">int|syscall_open|char *|LONG</span><br><span class="line"></span><br><span class="line">运行hutrace记录ls程序运行的syscall：</span><br><span class="line"># huhu @ huhu in ~/Desktop/my/build/bin64 [8:17:52] </span><br><span class="line">$ ./hutrace -only_from_app -print_ret_addr  -print_syscall -- /bin/ls -al</span><br></pre></td></tr></table></figure>
+<p>得到的部分日志记录：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">~~127677~~ S|syscall_open_2 N:0x4</span><br><span class="line">    arg 0: /etc/ld.so.cache (type=char*, size=0x0)</span><br><span class="line">    arg 1: 0x80000 (type=long, size=0x8)</span><br><span class="line"> and syscall_open return</span><br><span class="line"> S|read0</span><br><span class="line">~~128056~~ S|syscall_read_0 N:0xa</span><br><span class="line">    arg 0: 0x4 (type=long, size=0x8)</span><br><span class="line">    arg 2: 0x340 (type=int, size=0x4)</span><br><span class="line"> and syscall_read return</span><br><span class="line">    arg 1: 0x00007fffffffd3e8</span><br><span class="line">000000: 7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00  .ELF............</span><br><span class="line">000010: 03 00 3e 00 01 00 00 00 b0 5a 00 00 00 00 00 00  ..&gt;......Z......</span><br><span class="line">000020: 40 00 00 00 00 00 00 00 30 f5 01 00 00 00 00 00  @.......0.......</span><br><span class="line">000030: 00 00 00 00 40 00 38 00 08 00 40 00 1e 00 1d 00  ....@.8...@.....</span><br><span class="line">//省略0x340剩余部分显示</span><br><span class="line"> (type=__out hex^ARG2*, size=0x340)</span><br><span class="line">S|write1</span><br><span class="line">~~128056~~ S|syscall_write_1 N:0x3aa</span><br><span class="line">    arg 0: 0x1 (type=long, size=0x8)</span><br><span class="line">    arg 1: drwxrwxr-x 5 huhu huhu    4096 Apr 25 08:11 ..</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line"> and syscall_write return</span><br></pre></td></tr></table></figure>
+<p>仅这一部分可打印16进制数据的功能就比strace打印的更友好点了~而且strace本身基于ptrace实现的，遇到基于ptrace实现的一些反调试技术就无法继续追踪了：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ strace ./myptrace-simple.out</span><br><span class="line">//部分结果</span><br><span class="line">ptrace(PTRACE_TRACEME)                  = -1 EPERM (Operation not permitted)</span><br><span class="line">fstat(1, &#123;st_mode=S_IFCHR|0660, st_rdev=makedev(4, 1), ...&#125;) = 0</span><br><span class="line">ioctl(1, TCGETS, &#123;B38400 opost isig icanon echo ...&#125;) = 0</span><br><span class="line">brk(NULL)                               = 0x8402000</span><br><span class="line">brk(0x8423000)                          = 0x8423000</span><br><span class="line">write(1, &quot;don&apos;t trace me\n&quot;, 15don&apos;t trace me                  &lt;-----ptrace检测</span><br><span class="line">)        = 15</span><br><span class="line">exit_group(1)                           = ?</span><br><span class="line">+++ exited with 1 +++</span><br></pre></td></tr></table></figure>
+<p>对比hutrace的结果：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ ./hutrace -only_from_app -print_ret_addr -print_ins_info -print_syscall -- ./myptrace-simple.out</span><br><span class="line">no one trace me</span><br><span class="line"></span><br><span class="line">//部分trace结果</span><br><span class="line">~~12192~~ libc.so.6!ptrace N:0x1a</span><br><span class="line">    arg 0: 0x0000000000000000</span><br><span class="line">    arg 1: 0x0000000000000000</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8e6ac,offset:0x6ac</span><br><span class="line">S|ptrace101</span><br><span class="line">~~12192~~ S|syscall_ptrace_101 N:0x1b</span><br><span class="line"> and syscall_ptrace return</span><br><span class="line">7ffff3d8e6ac:</span><br><span class="line">     cmp    rax, 0xff</span><br><span class="line">     jnz    0x00007ffff3d8e6c5</span><br><span class="line"> and ptrace return value:  0x0                           &lt;-----ptrace未检测到</span><br><span class="line">7ffff3d8e6c5:</span><br><span class="line">     lea    rdi, &lt;rel&gt; [0x00007ffff3d8e773]</span><br><span class="line">     call   0x00007ffff3d8e550</span><br><span class="line">C7ffff3d8e6cc|7ffff3d8e550</span><br><span class="line">7ffff3d8e550:</span><br><span class="line">     jmp    &lt;rel&gt; qword ptr [0x00007ffff3f8efc8]</span><br><span class="line">J7ffff3d8e550|7ffff6b756a0</span><br><span class="line">~~12192~~ libc.so.6!puts N:0x1c</span><br><span class="line">    arg 0: no one trace me (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8e6d1,offset:0x6d1</span><br></pre></td></tr></table></figure>
+<p>不过目前还是存在一些基于ptrace的反调试技术如debugblocker等可能导致hutrace追踪失败的，可以只使用hutrace追踪父进程，提取其处理流程对程序进行patch等，后面如果有想到好点的解决方案也会添加进去。</p>
+<h2 id="Linux系统下任意地址hook插件编写"><a href="#Linux系统下任意地址hook插件编写" class="headerlink" title="Linux系统下任意地址hook插件编写"></a>Linux系统下任意地址hook插件编写</h2><p>Linux系统上相比Window上利用hutrace加载自定义插件的限制更大，无法像Win上方便的利用GetModuleHandle获取除kernel32.dll、kernerbase.dll模块外其它模块的基址（上一篇提到过，当然dynamorio自己也有接口），虽然还有其它方法可以实现，但是目前想到的代价略微有点大，暂时也没有需求，后面如果有好的实现方法会更新下，暂时只支持固定地址方式进行Hook（不支持windows平台上hutrace插件的模块名+偏移的方式），下面来看一个演示例子，在hutrace.config中添加下述配置：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hook|null|0x400706|mylinuxplugin.so|f_hookpre|f_hookpost</span><br><span class="line">//和windows系统上的设置一样，如果hook的地址对应的并非一个函数，或者不需要对其函数返回状态进行hook，可以设置f_hookpost为null，否则可能会导致程序崩溃</span><br></pre></td></tr></table></figure>
+<p>目标程序0x400706为一个简单的打印参数函数：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// test_arg(1,2,3,4,5,6,7,8);</span><br><span class="line">__int64 __fastcall test_arg(unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4, unsigned int a5, unsigned int a6, unsigned int a7, unsigned int a8)</span><br><span class="line">&#123;</span><br><span class="line">  printf(&quot;a1:%d\n&quot;, a1);</span><br><span class="line">  printf(&quot;a2:%d\n&quot;, a2);</span><br><span class="line">  printf(&quot;a3:%d\n&quot;, a3);</span><br><span class="line">  printf(&quot;a4:%d\n&quot;, a4);</span><br><span class="line">  printf(&quot;a5:%d\n&quot;, a5);</span><br><span class="line">  printf(&quot;a6:%d\n&quot;, a6);</span><br><span class="line">  printf(&quot;a7:%d\n&quot;, a7);</span><br><span class="line">  printf(&quot;a8:%d\n&quot;, a8);</span><br><span class="line">  return 1LL;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对应的Hook函数实现（my_fprintf函数指针由hutrace插件自动赋值，不用考虑其实现），通过hook方式将所有的参数设置为1：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">reg_t f_hookpre(file_t outf, dr_mcontext_t *mc, reg_t ret_addr)</span><br><span class="line">&#123;</span><br><span class="line">   for (reg_t i = 1; i &lt;= 8; i++)</span><br><span class="line">   &#123;</span><br><span class="line">      my_fprintf(outf, &quot;[hook]:get arg_%d: &quot;PIFMT&quot; \n&quot;, i,my_getarg(mc, i));</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   //调用write函数也可以写入记录到trace日志文件，效果和my_fprintf一致</span><br><span class="line">   write(outf, &quot;[hook]modify arg...\n&quot;, strlen(&quot;[hook]modify arg...\n&quot;));</span><br><span class="line"></span><br><span class="line">   for (reg_t i = 1; i &lt;= 8; i++)</span><br><span class="line">   &#123;</span><br><span class="line">      my_fprintf(outf, &quot;[hook]:set arg_%d\n&quot;, i);</span><br><span class="line">      my_setarg(mc, i, 1);</span><br><span class="line">   &#125;</span><br><span class="line">   return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样可以不依赖my_getarg、my_setarg等插件模板中已经实现好的函数对寄存器等进行修改（利用mc参数）~</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Windows上的调试分析工具很多且均比较完善了，Linux上gdb调试一些多进程程序都稍微麻烦点，另外稍微特殊的程序如利用错误section头部反调试的，虽然也可以gdb附加，但是使用hutrace来搞都没啥问题，特殊情况下hutrace无法运行的程序就要靠接下来介绍的hzytrace了，详见下一页基于pin实现的hzytrace具体介绍。</p>
+]]></content>
+      <tags>
+        <tag>工具</tag>
+        <tag>调试器</tag>
+        <tag>dynamorio</tag>
+        <tag>hutrace</tag>
+        <tag>Linux</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>2022-06-06-hutrace工具系列第2篇之Windows应用</title>
     <url>/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/</url>
     <content><![CDATA[<p><img src="1.png" alt=""></p>
@@ -1715,66 +1775,6 @@
         <tag>Windows</tag>
         <tag>漏洞分析</tag>
         <tag>样本分析</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2022-06-06-hutrace工具系列第3篇之Linux应用</title>
-    <url>/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/</url>
-    <content><![CDATA[<center>
-    <img style="border-radius: 0.3125em;
-    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src=图片1.png>
-    <br>
-    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
-    display: inline-block;
-    color: #999;
-    padding: 2px;"></div>
-</center>
-
-<blockquote>
-<p>&ensp;&ensp;&ensp;&ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公开的样例较少，内容偏少一点。
-</blockquote>
-<a id="more"></a>
-
-<h2 id="基本用法"><a href="#基本用法" class="headerlink" title="基本用法"></a>基本用法</h2><p>Linux下的hutrace使用与Windows基本一致：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># huhu @ huhu in ~/Desktop/my/build/bin64 [9:58:27] C:127</span><br><span class="line">$ ./hutrace</span><br><span class="line">ERROR: Usage error: </span><br><span class="line"> Usage:</span><br><span class="line"> -logdir              [     .]  Log directory to print library call data</span><br><span class="line"> -only_from_app       [ false]  Reports only library calls from the app</span><br><span class="line"> -trace_to_librarys   [    &quot;&quot;]  Trace specify librarys</span><br><span class="line"> -record_start_addr   [    &quot;&quot;]  record begin at start_addr</span><br><span class="line"> -record_end_addr     [    &quot;&quot;]  record finished at end_addr</span><br><span class="line"> -follow_children     [ false]  Trace child process</span><br><span class="line"> -print_ret_addr      [ false]  Print library call&apos;s return address</span><br><span class="line"> -print_ins_info      [ false]  Print instructions disassemble info</span><br><span class="line"> -print_ins_reg       [ false]  Print instructions disassemble reg</span><br><span class="line"> -print_ins_all       [ false]  Print instructions trace info</span><br><span class="line"> -print_syscall       [ false]  Print syscall info </span><br><span class="line"> -num_unknown_args    [     2]  Number of unknown libcall args to print</span><br><span class="line"> -num_max_args        [     6]  Maximum number of arguments to print</span><br><span class="line"> -config              [    &quot;&quot;]  The path to custom config file.</span><br><span class="line"> -ignore_underscore   [ false]  Ignores library routine names starting with &quot;_&quot;.</span><br><span class="line"> -only_to_lib         [    &quot;&quot;]  Only reports calls to the library &lt;lib_name&gt;. </span><br><span class="line"> -help                [ false]  Print this message.</span><br><span class="line"> -version             [ false]  Print version number.</span><br><span class="line"> -verbose             [     1]  Change verbosity.</span><br><span class="line"> -use_config          [  true]  Use config file</span><br></pre></td></tr></table></figure>
-<p>拿一个最简单的例子来演示，一个比较老的ctf的最简单题，flag解密后直接比较，不过其中夹杂了一些main函数等位置cc断点的检测：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ ./hutrace -only_from_app -print_ret_addr -print_ins_info -- ./noccbytes</span><br></pre></td></tr></table></figure>
-
-<p>查看trace得到的API记录：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">C7ffff3d8dbb7|7ffff3d8d8a0</span><br><span class="line">7ffff3d8d8a0:</span><br><span class="line">     jmp    &lt;rel&gt; qword ptr [0x00007ffff3f8ef98]</span><br><span class="line">J7ffff3d8d8a0|7ffff6829a50</span><br><span class="line">~~5820~~ libc.so.6!strcpy N:0x42</span><br><span class="line">    arg 1: WattoSays</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8dbbc,offset:0xbbc</span><br><span class="line">7ffff3d8dbbc:</span><br><span class="line">     lea    rdx, [rbp-0x30]</span><br><span class="line">     mov    rax, qword ptr [rbp-0x38]</span><br><span class="line">     mov    rsi, rdx</span><br><span class="line">     mov    rdi, rax</span><br><span class="line">     call   0x00007ffff3d8d8d0</span><br><span class="line"> and strcpy return value:  0x7fffffffda20 </span><br><span class="line">    arg 0: WattoSays</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line">C7ffff3d8dbca|7ffff3d8d8d0</span><br><span class="line">7ffff3d8d8d0:</span><br><span class="line">     jmp    &lt;rel&gt; qword ptr [0x00007ffff3f8efb0]</span><br><span class="line">J7ffff3d8d8d0|7ffff68235f0</span><br><span class="line">~~5820~~ libc.so.6!strcmp N:0x43                &lt;----最终解密的password在此比较</span><br><span class="line">    arg 0: 1234567890</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line">    arg 1: WattoSays</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8dbcf,offset:0xbcf</span><br><span class="line">7ffff3d8dbcf:</span><br><span class="line">     test   eax, eax</span><br><span class="line">     jnz    0x00007ffff3d8dbda</span><br><span class="line"> and strcmp return value:  0xffffffda </span><br><span class="line">7ffff3d8dbda:</span><br><span class="line">     lea    rdi, &lt;rel&gt; [0x00007ffff3d8de19]</span><br><span class="line">     call   0x00007ffff3d8d8f0</span><br><span class="line">C7ffff3d8dbe1|7ffff3d8d8f0</span><br><span class="line">J7ffff3d8d8f0|7ffff67f36a0</span><br><span class="line">~~5820~~ libc.so.6!puts N:0x44</span><br><span class="line">    arg 0: </span><br><span class="line">Wrong Password (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8dbe6,offset:0xbe6</span><br></pre></td></tr></table></figure>
-<p>当然ltrace也可以做到哦~只是hutrace得到的信息更为丰富。</p>
-<h2 id="多进程分析"><a href="#多进程分析" class="headerlink" title="多进程分析"></a>多进程分析</h2><p>Linux下进程创建方式比较多样，而Fork又有别于常规的进程创建方式，导致hutrace需要额外处理Linux上常见的Fork进程的记录问题，当然处理难度不大，来看下最简单的演示程序：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">result = fork();</span><br><span class="line">if(result == -1)</span><br><span class="line">&#123;</span><br><span class="line">   printf(&quot;Fork error\n&quot;);</span><br><span class="line">&#125;</span><br><span class="line">else if (result == 0)</span><br><span class="line">&#123;</span><br><span class="line">   printf(&quot;The returned value is %d In child process!! My PID is %d\n&quot;,result,getpid());</span><br><span class="line">&#125;</span><br><span class="line">else</span><br><span class="line">&#123;</span><br><span class="line">   printf(&quot;The returned value is %d In father process!! My PID is %d\n&quot;,result,getpid());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>开工：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ ./hutrace -only_from_app -print_ret_addr -print_ins_info -- ./myproctest.out</span><br><span class="line">The returned value is 7774 In father process!! My PID is 7773</span><br><span class="line">The returned value is 0 In child process!! My PID is 7774</span><br></pre></td></tr></table></figure>
-<p>我们只看下子进程的记录日志：</p>
-<p><img src="%E5%9B%BE%E7%89%872.png" alt=""></p>
-<p>常规方式的进程创建没啥特别的，不再说了，可惜Linux上dynamorio不支持Windows上的-syswide_on功能。</p>
-<h2 id="Linux-Syscall调用记录"><a href="#Linux-Syscall调用记录" class="headerlink" title="Linux Syscall调用记录"></a>Linux Syscall调用记录</h2><p>上一篇中介绍的windows系统调用使用常见相对小众，Linux下就比较常见了，hutrace在linux系统上同样默认不记录syscall调用信息，而且不在hutrace.config中设置参数信息的话只打印系统调用名称，只有设置了参数信息才会打印系统调用的参数，实际使用时和打印API函数以及上一篇Window应用中介绍的使用方式类似，在hutrace.config配置文件中添加对应syscall的参数信息：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hutrace.config文件中设置：</span><br><span class="line">int|syscall_read|LONG|__out hex^ARG2|int</span><br><span class="line">int|syscall_write|LONG|char *</span><br><span class="line">int|syscall_open|char *|LONG</span><br><span class="line"></span><br><span class="line">运行hutrace记录ls程序运行的syscall：</span><br><span class="line"># huhu @ huhu in ~/Desktop/my/build/bin64 [8:17:52] </span><br><span class="line">$ ./hutrace -only_from_app -print_ret_addr  -print_syscall -- /bin/ls -al</span><br></pre></td></tr></table></figure>
-<p>得到的部分日志记录：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">~~127677~~ S|syscall_open_2 N:0x4</span><br><span class="line">    arg 0: /etc/ld.so.cache (type=char*, size=0x0)</span><br><span class="line">    arg 1: 0x80000 (type=long, size=0x8)</span><br><span class="line"> and syscall_open return</span><br><span class="line"> S|read0</span><br><span class="line">~~128056~~ S|syscall_read_0 N:0xa</span><br><span class="line">    arg 0: 0x4 (type=long, size=0x8)</span><br><span class="line">    arg 2: 0x340 (type=int, size=0x4)</span><br><span class="line"> and syscall_read return</span><br><span class="line">    arg 1: 0x00007fffffffd3e8</span><br><span class="line">000000: 7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00  .ELF............</span><br><span class="line">000010: 03 00 3e 00 01 00 00 00 b0 5a 00 00 00 00 00 00  ..&gt;......Z......</span><br><span class="line">000020: 40 00 00 00 00 00 00 00 30 f5 01 00 00 00 00 00  @.......0.......</span><br><span class="line">000030: 00 00 00 00 40 00 38 00 08 00 40 00 1e 00 1d 00  ....@.8...@.....</span><br><span class="line">//省略0x340剩余部分显示</span><br><span class="line"> (type=__out hex^ARG2*, size=0x340)</span><br><span class="line">S|write1</span><br><span class="line">~~128056~~ S|syscall_write_1 N:0x3aa</span><br><span class="line">    arg 0: 0x1 (type=long, size=0x8)</span><br><span class="line">    arg 1: drwxrwxr-x 5 huhu huhu    4096 Apr 25 08:11 ..</span><br><span class="line"> (type=char*, size=0x0)</span><br><span class="line"> and syscall_write return</span><br></pre></td></tr></table></figure>
-<p>仅这一部分可打印16进制数据的功能就比strace打印的更友好点了~而且strace本身基于ptrace实现的，遇到基于ptrace实现的一些反调试技术就无法继续追踪了：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ strace ./myptrace-simple.out</span><br><span class="line">//部分结果</span><br><span class="line">ptrace(PTRACE_TRACEME)                  = -1 EPERM (Operation not permitted)</span><br><span class="line">fstat(1, &#123;st_mode=S_IFCHR|0660, st_rdev=makedev(4, 1), ...&#125;) = 0</span><br><span class="line">ioctl(1, TCGETS, &#123;B38400 opost isig icanon echo ...&#125;) = 0</span><br><span class="line">brk(NULL)                               = 0x8402000</span><br><span class="line">brk(0x8423000)                          = 0x8423000</span><br><span class="line">write(1, &quot;don&apos;t trace me\n&quot;, 15don&apos;t trace me                  &lt;-----ptrace检测</span><br><span class="line">)        = 15</span><br><span class="line">exit_group(1)                           = ?</span><br><span class="line">+++ exited with 1 +++</span><br></pre></td></tr></table></figure>
-<p>对比hutrace的结果：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ ./hutrace -only_from_app -print_ret_addr -print_ins_info -print_syscall -- ./myptrace-simple.out</span><br><span class="line">no one trace me</span><br><span class="line"></span><br><span class="line">//部分trace结果</span><br><span class="line">~~12192~~ libc.so.6!ptrace N:0x1a</span><br><span class="line">    arg 0: 0x0000000000000000</span><br><span class="line">    arg 1: 0x0000000000000000</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8e6ac,offset:0x6ac</span><br><span class="line">S|ptrace101</span><br><span class="line">~~12192~~ S|syscall_ptrace_101 N:0x1b</span><br><span class="line"> and syscall_ptrace return</span><br><span class="line">7ffff3d8e6ac:</span><br><span class="line">     cmp    rax, 0xff</span><br><span class="line">     jnz    0x00007ffff3d8e6c5</span><br><span class="line"> and ptrace return value:  0x0                           &lt;-----ptrace未检测到</span><br><span class="line">7ffff3d8e6c5:</span><br><span class="line">     lea    rdi, &lt;rel&gt; [0x00007ffff3d8e773]</span><br><span class="line">     call   0x00007ffff3d8e550</span><br><span class="line">C7ffff3d8e6cc|7ffff3d8e550</span><br><span class="line">7ffff3d8e550:</span><br><span class="line">     jmp    &lt;rel&gt; qword ptr [0x00007ffff3f8efc8]</span><br><span class="line">J7ffff3d8e550|7ffff6b756a0</span><br><span class="line">~~12192~~ libc.so.6!puts N:0x1c</span><br><span class="line">    arg 0: no one trace me (type=char*, size=0x0)</span><br><span class="line"> and return to module id:4, retraddr: 0x7ffff3d8e6d1,offset:0x6d1</span><br></pre></td></tr></table></figure>
-<p>不过目前还是存在一些基于ptrace的反调试技术如debugblocker等可能导致hutrace追踪失败的，可以只使用hutrace追踪父进程，提取其处理流程对程序进行patch等，后面如果有想到好点的解决方案也会添加进去。</p>
-<h2 id="Linux系统下任意地址hook插件编写"><a href="#Linux系统下任意地址hook插件编写" class="headerlink" title="Linux系统下任意地址hook插件编写"></a>Linux系统下任意地址hook插件编写</h2><p>Linux系统上相比Window上利用hutrace加载自定义插件的限制更大，无法像Win上方便的利用GetModuleHandle获取除kernel32.dll、kernerbase.dll模块外其它模块的基址（上一篇提到过，当然dynamorio自己也有接口），虽然还有其它方法可以实现，但是目前想到的代价略微有点大，暂时也没有需求，后面如果有好的实现方法会更新下，暂时只支持固定地址方式进行Hook（不支持windows平台上hutrace插件的模块名+偏移的方式），下面来看一个演示例子，在hutrace.config中添加下述配置：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hook|null|0x400706|mylinuxplugin.so|f_hookpre|f_hookpost</span><br><span class="line">//和windows系统上的设置一样，如果hook的地址对应的并非一个函数，或者不需要对其函数返回状态进行hook，可以设置f_hookpost为null，否则可能会导致程序崩溃</span><br></pre></td></tr></table></figure>
-<p>目标程序0x400706为一个简单的打印参数函数：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">// test_arg(1,2,3,4,5,6,7,8);</span><br><span class="line">__int64 __fastcall test_arg(unsigned int a1, unsigned int a2, unsigned int a3, unsigned int a4, unsigned int a5, unsigned int a6, unsigned int a7, unsigned int a8)</span><br><span class="line">&#123;</span><br><span class="line">  printf(&quot;a1:%d\n&quot;, a1);</span><br><span class="line">  printf(&quot;a2:%d\n&quot;, a2);</span><br><span class="line">  printf(&quot;a3:%d\n&quot;, a3);</span><br><span class="line">  printf(&quot;a4:%d\n&quot;, a4);</span><br><span class="line">  printf(&quot;a5:%d\n&quot;, a5);</span><br><span class="line">  printf(&quot;a6:%d\n&quot;, a6);</span><br><span class="line">  printf(&quot;a7:%d\n&quot;, a7);</span><br><span class="line">  printf(&quot;a8:%d\n&quot;, a8);</span><br><span class="line">  return 1LL;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>对应的Hook函数实现（my_fprintf函数指针由hutrace插件自动赋值，不用考虑其实现），通过hook方式将所有的参数设置为1：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">reg_t f_hookpre(file_t outf, dr_mcontext_t *mc, reg_t ret_addr)</span><br><span class="line">&#123;</span><br><span class="line">   for (reg_t i = 1; i &lt;= 8; i++)</span><br><span class="line">   &#123;</span><br><span class="line">      my_fprintf(outf, &quot;[hook]:get arg_%d: &quot;PIFMT&quot; \n&quot;, i,my_getarg(mc, i));</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   //调用write函数也可以写入记录到trace日志文件，效果和my_fprintf一致</span><br><span class="line">   write(outf, &quot;[hook]modify arg...\n&quot;, strlen(&quot;[hook]modify arg...\n&quot;));</span><br><span class="line"></span><br><span class="line">   for (reg_t i = 1; i &lt;= 8; i++)</span><br><span class="line">   &#123;</span><br><span class="line">      my_fprintf(outf, &quot;[hook]:set arg_%d\n&quot;, i);</span><br><span class="line">      my_setarg(mc, i, 1);</span><br><span class="line">   &#125;</span><br><span class="line">   return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>同样可以不依赖my_getarg、my_setarg等插件模板中已经实现好的函数对寄存器等进行修改（利用mc参数）~</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Windows上的调试分析工具很多且均比较完善了，Linux上gdb调试一些多进程程序都稍微麻烦点，另外稍微特殊的程序如利用错误section头部反调试的，虽然也可以gdb附加，但是使用hutrace来搞都没啥问题，特殊情况下hutrace无法运行的程序就要靠接下来介绍的hzytrace了，详见下一页基于pin实现的hzytrace具体介绍。</p>
-]]></content>
-      <tags>
-        <tag>工具</tag>
-        <tag>调试器</tag>
-        <tag>dynamorio</tag>
-        <tag>hutrace</tag>
-        <tag>Linux</tag>
       </tags>
   </entry>
   <entry>
