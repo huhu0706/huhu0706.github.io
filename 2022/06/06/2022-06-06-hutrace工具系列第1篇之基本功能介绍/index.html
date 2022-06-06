@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重">
+<meta name="keywords" content="工具,调试器,dynamorio,hutrace">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2022-06-06-hutrace工具系列第1篇之基本功能介绍">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;1.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;3.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;4.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;5.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;6.png">
+<meta property="og:updated_time" content="2022-06-05T06:42:12.848Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;1.png">
+
+<link rel="canonical" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2022-06-06-hutrace工具系列第1篇之基本功能介绍 | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2022-06-06-hutrace工具系列第1篇之基本功能介绍
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 12:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T12:00:00+08:00">2022-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-05 14:42:12" itemprop="dateModified" datetime="2022-06-05T14:42:12+08:00">2022-06-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%9F%BA%E7%A1%80%E7%90%86%E8%AE%BA/" itemprop="url" rel="index">
+                    <span itemprop="name">基础理论</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>20k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/1.png" alt=""></p>
+<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重点略有区别，虽然hzytrace也可以支持windows，但Windows上相应需求基本可全部由hutrace达成，且效率更高，故目前暂先完善了Linux平台下的hzytrace。利用hutrace、hzytrace在很多分析场景下甚至可以不需调试就可以完成分析目的，因为Linux上找到样例偏少，本篇基本功能介绍部分将主要以Windows为例介绍其功能，实际两个平台上功能基本一致（dynamorio本身是支持arm linux、arm android的、pin也支持macos，但我自己测试移植到对应平台还有些问题，需求比较小众，对应平台也有一些替代工具，暂也没来及继续深入研究）。
+</blockquote>
+<a id="more"></a>
+
+<h2 id="1-简介"><a href="#1-简介" class="headerlink" title="1. 简介"></a>1. 简介</h2><p>&ensp;&ensp;&ensp;&ensp;hutrace工具主要基于drltrace项目开发，原项目相当于一个利用dynamorio实现的特别简易的apimonitor，而dynamorio本身机制为动态插桩，自带N种反调试技术的免疫效果，后面又根据工作过程中的各类实际需求断断续续的对hutrace进行功能完善，目前主要支持的功能列表如下：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe</span><br><span class="line">ERROR: Usage error:</span><br><span class="line"> Usage:</span><br><span class="line"> -logdir               //生成的trace日志存储位置，默认为hutrace程序目录</span><br><span class="line"> -only_from_app       //只记录主程序执行情况</span><br><span class="line"> -trace_to_librarys   //除主程序外指定记录特定模块，与only_from_app结合使用</span><br><span class="line"> -record_start_addr   //指定记录开始地址</span><br><span class="line"> -record_end_addr     //指定记录结束地址</span><br><span class="line"> -follow_children     //追踪子进程</span><br><span class="line"> -print_ret_addr      //打印API函数调用返回地址</span><br><span class="line"> -print_ins_info      //打印所有执行基本块的汇编代码</span><br><span class="line"> -print_ins_reg       //打印所有执行指令的代码以及寄存器、内存引用数据</span><br><span class="line"> -print_ins_all       //不推荐，print_ins_reg增强版，解析上述寄存器等数据的引用数据并打印，打印的数据更丰富，但是数据量太大，一般需求不大。。</span><br><span class="line"> -print_syscall       //追踪系统调用</span><br><span class="line">//省略部分无关紧要的功能参数</span><br></pre></td></tr></table></figure>
+<p>当然功能不止如此，原项目的功能较为简单,返回地址都不能记录，而hutrace工具中除上述列表中功能外我后续添加了分线程记录、基本块转移记录、复杂参数及返回值等的打印、以及Sub函数参数打印、Linux Fork类型子进程追踪、简易补丁及利用插件完成任意地址Hook功能等等…</p>
+<p>本篇以notepad、calc以及一些demo程序为例对hutrace的主要功能进行演示，后续文章将结合一些实际的漏洞以及样本案例演示hutrace应用于逆向分析实战。</p>
+<h2 id="2-API记录"><a href="#2-API记录" class="headerlink" title="2. API记录"></a>2. API记录</h2><p>&ensp;&ensp;&ensp;&ensp;目前很多ApiMonitor仅仅是记录调用的APi名称，能够记录API调用前后参数信息的就比较少了，当然Rohitab Batra的API Monitor工具都可以做到上述功能，功能也比较丰富，也可以做到参数结构体的解析，但是目前仅支持Windows平台，下面介绍下hutrace的API记录功能特点。
+
+<h3 id="2-1-常规参数类型"><a href="#2-1-常规参数类型" class="headerlink" title="2.1 常规参数类型"></a>2.1 常规参数类型</h3><p>hutrace工具集成了不同类型参数的输出功能，并依托hutrace.config配置文件进行设置对应API函数的参数属性，例如对WriteFile函数的描述：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">bool|WriteFile|HANDLE|char*|DWORD|__out DWORD*|__inout OVERLAPPED*</span><br><span class="line">说明：</span><br><span class="line">// bool代表返回值类型，但一般都按int值处理了，此处含义不大</span><br><span class="line">// WriteFile 代表需要记录的API函数名称</span><br><span class="line">// HANDLE char* DWORD DWORD*等分别代表参数类型，仅识别常见格式，OVERLAPPED等不识别的数据类型默认不处理</span><br><span class="line">// __out代表API调用结束后输出参数信息，默认为__in,__inout代表API调用前后均输出参数信息</span><br></pre></td></tr></table></figure>
+
+<p>以notepad为例记录记事本程序的文件写入操作，在记事本程序中输入测试字符串并保存到文件，使用hutrace程序运行并记录程序日志的命令格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app -print_ret_addr -- notepad 111.txt</span><br></pre></td></tr></table></figure>
+
+<p>在当前目录会根据notepad程序运行情况生成文件名形如“huhu.notepad.exe.01896.0000.log”的文件，其中“01896”为进程PID，“0000”为线程序号，下面截取一部分trace的日志结果进行说明：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">~~1464~~ KERNEL32.dll!WideCharToMultiByte N:0xa09</span><br><span class="line">    arg 0: 0x3a8 (type=uint, size=0x4)</span><br><span class="line">    arg 1: 0x400 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 1111111111111111 (type=wchar_t*, size=0x0)   //wchar_t代表宽字节类型</span><br><span class="line">    arg 3: 0x10 (type=int, size=0x4)</span><br><span class="line">    arg 5: 0x10 (type=int, size=0x4)</span><br><span class="line"> and return to module id:5, retraddr: 0xff7b8a76,offset:0x8a76   //调用模块、返回地址</span><br><span class="line"> and WideCharToMultiByte return value:  0x10 </span><br><span class="line">    arg 4: 1111111111111111 (type=char*, size=0x0)      //API函数转换后按char*打印</span><br><span class="line">.....</span><br><span class="line">~~1464~~ KERNEL32.dll!WriteFile N:0xa0a</span><br><span class="line">    arg 0: 0x4dc (type=HANDLE, size=0x8)</span><br><span class="line">    arg 1: 1111111111111111 (type=char*, size=0x0)          </span><br><span class="line">    arg 2: 0x10 (type=DWORD, size=0x4)</span><br><span class="line">    arg 4: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line"> and return to module id:5, retraddr: 0xff7b8a96,offset:0x8a96</span><br><span class="line"> and WriteFile return value:  0x1 </span><br><span class="line">    arg 3: 0x00000000001bf1e0 (type=DWORD*, size=0x4)</span><br><span class="line">    arg 4: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br></pre></td></tr></table></figure>
+<p>在记录的trace日志结果里，“1464”代表线程id，“N:0xa09”代表记录的API函数序号(为了区分多线程记录的日志里API函数的调用顺序)。</p>
+<h3 id="2-2-Hex类型参数打印"><a href="#2-2-Hex类型参数打印" class="headerlink" title="2.2 Hex类型参数打印"></a>2.2 Hex类型参数打印</h3><ol>
+<li><p>常规的参数类型打印并不能满足我们对十六进制数据的记录，下面以nc为例演示下十六进制数据参数类型的3种记录方式，首先查看第一种指定特定参数为十六进制输出数据大小的方式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">hutrace.config文件中的配置：</span><br><span class="line">int|send|DWORD|hex^ARG2|int|int</span><br><span class="line">int|recv|DWORD|__out hex^ARG2|int|int</span><br><span class="line"></span><br><span class="line">运行服务端监听：</span><br><span class="line">C:\Users\huhu\Desktop\bin64&gt;nc64.exe -lvp 1234</span><br><span class="line"></span><br><span class="line">使用hutrace记录客户端连接：</span><br><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -- nc64.exe 127.0.0.1 1234</span><br></pre></td></tr></table></figure>
+<p>建连成功后分别在客户端和服务端分别输入测试字符串“111…”、“222…”，在生成的trace日志文件中得到对应的记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">~~2164~~ WS2_32.dll!send N:0x7cb</span><br><span class="line">    arg 0: 0x174 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: 0x555fd0</span><br><span class="line">000000: 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31  1111111111111111</span><br><span class="line">000010: 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31  1111111111111111</span><br><span class="line">000020: 31 31 31 31 31 31 31 31 31 31 0a                 1111111111.</span><br><span class="line"> (type=hex^ARG2, size=0x2b)</span><br><span class="line">    arg 2: 0x2b (type=int, size=0x4)</span><br><span class="line">    arg 3: 0x0 (type=int, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x405197,offset:0x5197</span><br><span class="line"> and send return value:  0x2b </span><br><span class="line">......</span><br><span class="line">~~2164~~ WSOCK32.dll!recv N:0x1045</span><br><span class="line">    arg 0: 0x174 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x2000 (type=int, size=0x4)</span><br><span class="line">    arg 3: 0x0 (type=int, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x404f08,offset:0x4f08</span><br><span class="line"> and recv return value:  0x2b </span><br><span class="line">    arg 1: 0x0000000000557fe0</span><br><span class="line">000000: 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32  2222222222222222</span><br><span class="line">000010: 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32  2222222222222222</span><br><span class="line">000020: 32 32 32 32 32 32 32 32 32 32 0a 00 00 00 00 00  2222222222......</span><br><span class="line">000030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span><br><span class="line">//缓冲区0x2000字节大小，省略部分显示。</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>上述演示中recv函数设置按“ARG2”参数（以0为开始索引，ARG2代表recv函数第三个参数）的大小进行输出，实际接受数据可能没有这么多，下面介绍第二种以返回值方式打印：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hutrace.config文件中的配置：</span><br><span class="line">int|recv|DWORD|__out hex^RET|int|int</span><br></pre></td></tr></table></figure>
+<p>对应的日志记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">~~1836~~ WSOCK32.dll!recv N:0xa5f</span><br><span class="line">    arg 0: 0x174 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x2000 (type=int, size=0x4)</span><br><span class="line">    arg 3: 0x0 (type=int, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x404f08,offset:0x4f08</span><br><span class="line"> and recv return value:  0x1d </span><br><span class="line">    arg 1: 0x0000000000277fe0</span><br><span class="line">000000: 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32  2222222222222222</span><br><span class="line">000010: 32 32 32 32 32 32 32 32 32 32 32 32 0a           222222222222.</span><br><span class="line"> (type=__out hex^RET*, size=0x1d)</span><br></pre></td></tr></table></figure>
+<p>在输出时hutrace对返回值进行了判断如果返回值太大则不进行输出避免影响trace进行。</p>
+</li>
+<li><p>第三种以固定长度方式记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hutrace.config文件中的配置：</span><br><span class="line">int|recv|DWORD|__out hex^NUM20|int|int</span><br></pre></td></tr></table></figure>
+<p>对应的日志记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">~~1396~~ WSOCK32.dll!recv N:0x8f2</span><br><span class="line">    arg 0: 0x178 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x2000 (type=int, size=0x4)</span><br><span class="line">    arg 3: 0x0 (type=int, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x404f08,offset:0x4f08</span><br><span class="line"> and recv return value:  0x25 </span><br><span class="line">    arg 1: 0x0000000000587fe0</span><br><span class="line">000000: 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32  2222222222222222</span><br><span class="line">000010: 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32  2222222222222222</span><br><span class="line"> (type=__out hex^NUM20*, size=0x20)</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h3 id="2-3-结构体参数打印"><a href="#2-3-结构体参数打印" class="headerlink" title="2.3 结构体参数打印"></a>2.3 结构体参数打印</h3><p>最后是最为麻烦的参数为结构体类型时，以WSASend、WSARecv为例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">hutrace.config文件中的配置：</span><br><span class="line">int|WSASend|DWORD|struct_ptr&#123;DWORD.DWORD.hex^A0&#125;^ARG2|DWORD|__out DWORD*|DWORD|DWORD*|DWORD*</span><br><span class="line">int|WSARecv|DWORD|__out struct_ptr&#123;DWORD.DWORD.hex^A0&#125;^ARG2|DWORD|__out DWORD*|DWORD*|DWORD*|DWORD*</span><br><span class="line"></span><br><span class="line">分别运行测试的服务端和客户端：</span><br><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -- testWsaRecv.exe</span><br><span class="line">//服务端监听5150端口</span><br><span class="line"></span><br><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -- testWsaSend.exe 127.0.0.1 5150 1111111111111111</span><br><span class="line">//客户端连接指定IP并发送数据</span><br></pre></td></tr></table></figure>
+
+<p>这里解释一下，首先是struct_ptr{DWORD.DWORD.hex^A0}，可以查看下WSASend、WSARecv函数参数的定义，第二个参数是个WSABUF结构体类型，正常结构体中第2个成员代表发送数据缓冲区，结构体第1个成员代表缓冲区数据的长度：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">typedef struct __WSABUF &#123;</span><br><span class="line">  u_long      len;</span><br><span class="line">  char FAR    *buf;</span><br><span class="line">&#125; WSABUF, FAR * LPWSABUF;</span><br></pre></td></tr></table></figure>
+
+<p>而这个测试的64位程序，该结构体实际上对齐成四字节的len+四字节填充+8字节buf指针，所以在配置文件语法上将第1个成员拆开成了两个DWORD类型，buf指针指向的数据长度为第1个DWORD成员，也即是{DWORD.DWORD.hex^A0}，结构体内的“hex^A0”是为了和常规参数中“^ARG2”区分，在结构体中使用“^A0”标识代表结构体内第1个成员。<br>后面更坑的是WSASend、WSARecv函数第3个参数代表第2个参数也即是WSABUF结构体的数量,所以在struct_ptr{…}后的“^ARG2”指示打印第3个参数的值对应的结构体数据，这也是和常规参数打印兼容的地方。注意如果是32位程序需要把参数中的第二个DWORD去掉哦~对结构体类型参数的处理过程中需要特别注意。</p>
+<p>最终得到的trace日志结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">客户端日志</span><br><span class="line">~~1164~~ WS2_32.dll!WSASend N:0x3ce</span><br><span class="line">    arg 0: 0x80 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: 0x16f5c8</span><br><span class="line"> and Struct Begin:                     //开始打印结构体</span><br><span class="line">    arg 0: 0x10 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: 0xcccccccc (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x343f97</span><br><span class="line">000000: 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31  1111111111111111</span><br><span class="line"> (type=hex^A0, size=0x10)</span><br><span class="line">    arg 0: 0x13 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: 0xcccccccc (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x16f608</span><br><span class="line">000000: 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32  2222222222222222</span><br><span class="line">000010: 32 32 32                                         222</span><br><span class="line"> (type=hex^A0, size=0x13)</span><br><span class="line">and Struct End                         //结构体打印结束</span><br><span class="line"> (type=struct_ptr&#123;DWORD.DWORD.hex^A0&#125;^ARG2, size=0x2)</span><br><span class="line">    arg 2: 0x2 (type=DWORD, size=0x4)</span><br><span class="line">    arg 4: 0xcccccccc00000000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 5: 0x000000000016f638 =&gt; 0xcccccccc (type=DWORD*, size=0x4)</span><br><span class="line"> and return to module id:4, retraddr: 0x13fef12d9,offset:0x12d9</span><br><span class="line"> and WSASend return value:  0x0 </span><br><span class="line">    arg 3: 0x000000000016f674 (type=DWORD*, size=0x4)</span><br><span class="line"></span><br><span class="line">服务器端日志：</span><br><span class="line">~~1420~~ WS2_32.dll!WSARecv N:0x371</span><br><span class="line">    arg 0: 0xb0 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x1 (type=DWORD, size=0x4)</span><br><span class="line">    arg 4: 0x000000000012f674 =&gt; 0x0 (type=DWORD*, size=0x4)</span><br><span class="line">    arg 5: 0x000000000038d7f8 =&gt; 0x0 (type=DWORD*, size=0x4)</span><br><span class="line"> and return to module id:4, retraddr: 0x13f911a9d,offset:0x1a9d</span><br><span class="line"> and WSARecv return value:  0x0 </span><br><span class="line">    arg 1: 0x000000000038d7e0</span><br><span class="line"> and Struct Begin:</span><br><span class="line">    arg 0: 0x2000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: 0x0 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x38b7e0</span><br><span class="line">000000: 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31  1111111111111111</span><br><span class="line">000010: 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32  2222222222222222</span><br><span class="line">000020: 32 32 32 00 00 00 00 00 00 00 00 00 00 00 00 00  222.............</span><br><span class="line">000030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span><br><span class="line">//省略0x2000剩余字节的显示</span><br><span class="line"> (type=hex^A0, size=0x2000)</span><br><span class="line">and Struct End</span><br><span class="line"> (type=__out struct_ptr&#123;DWORD.DWORD.hex^A0&#125;^ARG2*, size=0x1)</span><br><span class="line">    arg 3: 0x000000000012f6b4 (type=DWORD*, size=0x4)</span><br></pre></td></tr></table></figure>
+<p>记录的日志显示还不够美观，有空可能再改改优化下，WSARecv接收到的数据就不支持按返回值大小打印了，不过结构体中可以使用“^N20”这种固定数值的打印，和常规格式打印的“^NUM20”相区分。</p>
+<p>额外说明下样例里为了体现多个WSABUF结构体数据的打印，在客户端运行参数中指定的发送的第1段数据“111…”之后，程序中又追加了一个数据内容为“222…”的结构体合并发送用来测试，不然不好构造出这样的参数数据，不过服务端接收时还是一起接收的，如果拿测试程序测试时请自动忽略服务端报的一些小错，客户端发送完数据就关闭了，服务端还会把接受的数据发回来会调用WSASend报个错，懒得改了，仅为测试复杂结构体数据的打印。</p>
+<ul>
+<li>注意：在使用结构体或HEX类型时必须指定^NUM或者^ARG确定结构体的数目。</li>
+</ul>
+<h2 id="3-执行流trace"><a href="#3-执行流trace" class="headerlink" title="3. 执行流trace"></a>3. 执行流trace</h2><h3 id="3-1-基本块汇编代码输出"><a href="#3-1-基本块汇编代码输出" class="headerlink" title="3.1 基本块汇编代码输出"></a>3.1 基本块汇编代码输出</h3><p>默认不使用执行流trace功能时hutrace工具本身也会记录程序的基本块执行情况，分别为“I”间接call、“R”ret返回、“C”直接Call、“J”跳转指令四类。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">I40dacd|405170</span><br><span class="line">//call reg、call mem等间接call类型</span><br><span class="line">R40d221|4073ae</span><br><span class="line">//ret返回记录</span><br><span class="line">C4070e7|4029e0</span><br><span class="line">//常规的直接call</span><br><span class="line">J4029e0|7ffff69fa730    </span><br><span class="line">//只记录跳转偏移超0x1000的Jmp转移指令，主要目的为记录跨区段跳转，在一些壳中常见跳到OEP</span><br></pre></td></tr></table></figure>
+
+<p>下面在hutrace的运行参数上添加“-print_ins_info”参数运行记录calc进程代码执行流程：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe  -only_from_app -print_ret_addr -print_ins_info -- calc</span><br></pre></td></tr></table></figure>
+
+<p>得到如下所示的部分记录结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line">10001daad:</span><br><span class="line">     xor    eax, eax</span><br><span class="line">     lock cmpxchg qword ptr [rbp+0x00], rax, rbx</span><br><span class="line">     mov    rbp, rax</span><br><span class="line">     jnz    0x0000000100035a18</span><br><span class="line">10001dabe:</span><br><span class="line">     lea    r8d, [r14+0x41]</span><br><span class="line">     lea    rcx, [rsp+0x28]</span><br><span class="line">     xor    edx, edx</span><br><span class="line">     call   0x0000000100001bf8</span><br><span class="line">C10001dac9|100001bf8                     &lt;------------直接call</span><br><span class="line">J100001bf8|7ff756a1000</span><br><span class="line">~~640~~ msvcrt.dll!memset N:0x41</span><br><span class="line">    arg 0: 0x00000000000af778</span><br><span class="line">    arg 1: 0x0000000000000000</span><br><span class="line"> and return to module id:5, retraddr: 0x10001dace,offset:0x1dace</span><br><span class="line">10001dace:</span><br><span class="line">     mov    rax, &lt;rel&gt; qword ptr [0x0000000100063f28]</span><br><span class="line">     mov    dword ptr [rsp+0x20], 0x00000048</span><br><span class="line">     mov    qword ptr [rsp+0x38], r12</span><br><span class="line">     mov    qword ptr [rsp+0x50], rbx</span><br><span class="line">     test   rax, rax</span><br><span class="line">     jnz    0x0000000100035a08</span><br><span class="line"> and memset return value:  0xaf778 </span><br><span class="line">10001daf0:</span><br><span class="line">     cmp    rbx, r14</span><br><span class="line">     jz     0x0000000100035a4a</span><br><span class="line">10001daf9:</span><br><span class="line">     test   rbx, rbx</span><br><span class="line">     jz     0x0000000100035a6f</span><br><span class="line">10001db02:</span><br><span class="line">     mov    rdx, rsi</span><br><span class="line">     mov    rcx, rbx</span><br><span class="line">     call   0x000000010001db58</span><br><span class="line">C10001db08|10001db58</span><br><span class="line">10001db58:</span><br><span class="line">     jmp    &lt;rel&gt; qword ptr [0x00000001000623e0]</span><br><span class="line">J10001db58|78d43690                          &lt;------------长JMP跳转</span><br><span class="line">~~640~~ KERNEL32.dll!GetProcAddress N:0x42</span><br><span class="line">    arg 0: 0x7ff45ad0000 (type=HMODULE, size=0x4)</span><br><span class="line">    arg 1: WICCreateImagingFactory_Proxy (type=char*, size=0x0)</span><br><span class="line"> and return to module id:5, retraddr: 0x10001db0d,offset:0x1db0d</span><br><span class="line">.......//省略部分显示</span><br><span class="line">     pop    r14</span><br><span class="line">     pop    r13</span><br><span class="line">     pop    r12</span><br><span class="line">     ret</span><br><span class="line">R10001db50|10001c09f                         &lt;------------ret、retn等</span><br><span class="line">10001c09f:</span><br><span class="line">     movdqa xmm0, oword ptr [rsp+0x20]</span><br><span class="line">     movdqa xmm1, oword ptr [rsp+0x30]</span><br><span class="line">     movdqa xmm2, oword ptr [rsp+0x40]</span><br><span class="line">     movdqa xmm3, oword ptr [rsp+0x50]</span><br><span class="line">     mov    rcx, qword ptr [rsp+0x70]</span><br><span class="line">     mov    rdx, qword ptr [rsp+0x78]</span><br><span class="line">     mov    r8, qword ptr [rsp+0x80]</span><br><span class="line">     mov    r9, qword ptr [rsp+0x88]</span><br><span class="line">     add    rsp, 0x68</span><br><span class="line">     jmp    0x000000010001c0d7</span><br><span class="line">10001c0d7:</span><br><span class="line">     jmp    rax</span><br><span class="line">J10001c0d7|7ff45ad1a0c</span><br><span class="line">~~640~~ WindowsCodecs.dll!WICCreateImagingFactory_Proxy N:0x44</span><br><span class="line">    arg 0: 0x0000000000000236</span><br><span class="line">    arg 1: 0x00000000003662a0</span><br><span class="line">.......//省略部分显示</span><br><span class="line">     jnb    0x00000001000082cd</span><br><span class="line">100008291:</span><br><span class="line">     mov    rdx, qword ptr [r12]</span><br><span class="line">     xor    r9d, r9d</span><br><span class="line">     mov    r8, r15</span><br><span class="line">     mov    rcx, r13</span><br><span class="line">     call   &lt;rel&gt; qword ptr [0x0000000100062320]</span><br><span class="line">I10000829e|78d39940                             &lt;------------间接call</span><br><span class="line">~~640~~ KERNEL32.dll!FindResourceExW N:0x45</span><br></pre></td></tr></table></figure>
+<p>这种记录方式并非是以记录所执行的每条指令为单位，而是以基本块为单位插桩记录，打印执行的每一个基本块内的所有汇编指令，优点在于已经执行过的基本块如果执行频次较多，hutrace不会重复记录其汇编代码，能够极大避免日志记录以及dynamorio插桩过程造成的效率降低影响（对于非自修改的代码也可以不使用print_ins_info参数，打印出基本块转移转移指令之后再使用IDA脚本或者其它工具将对应的汇编代码添加到日志中，对于申请内存释放代码并执行的情况也可以DUMP内存然后解析反汇编代码到日志中）。</p>
+<p>在分析程序时使用print_ins_info功能不仅可以根据API信息了解到程序的基本功能，同时也能对一些代码执行细节进行预览及回溯，例如在分析某样本时通过查看日志可以直接定位到其调用退出进程函数前执行了检测虚拟机环境的代码，这也是常规API监视工具所做不到的。</p>
+<h3 id="3-2-特定Sub函数的trace"><a href="#3-2-特定Sub函数的trace" class="headerlink" title="3.2 特定Sub函数的trace"></a>3.2 特定Sub函数的trace</h3><p>为了满足一些特殊的需求，想对程序中特定的函数参数进行记录，注意这里所说的sub函数可以简单理解成ida识别的function起始地址，函数调用约定必须是标准的cdecl或者stdcall传参，当然64位程序正常的fastcall寄存器传参顺序不影响参数的获取，以一个最简单的64位弹窗程序为例：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/2.png" alt=""></p>
+<p>测试步骤如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">hutrace.config添加以下内容：</span><br><span class="line">int|0x14000102A|HWND|char*|char*|UINT     //其实就是MessageBoxA的参数格式~</span><br><span class="line"></span><br><span class="line">运行hutrace：</span><br><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -- test.exe</span><br></pre></td></tr></table></figure>
+<p>得到的部分日志结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">~~2024~~ test.exe!0x14000102A N:0x1</span><br><span class="line">    arg 0: &lt;null&gt; (type=&lt;unknown&gt;, size=0x0)</span><br><span class="line">    arg 1: Hello world! (type=char*, size=0x0)</span><br><span class="line">    arg 2: test (type=char*, size=0x0)</span><br><span class="line">    arg 3: 0x40 (type=uint, size=0x4)</span><br><span class="line"> and return to module id:5, retraddr: 0x140001021,offset:0x1021</span><br><span class="line">~~2024~~ USER32.dll!MessageBoxA N:0x2</span><br><span class="line">    arg 0: &lt;null&gt; (type=&lt;unknown&gt;, size=0x0)</span><br><span class="line">    arg 1: Hello world! (type=char*, size=0x0)</span><br><span class="line">    arg 2: test (type=char*, size=0x0)</span><br><span class="line">    arg 3: 0x40 (type=uint, size=0x4)</span><br><span class="line"> and return to module id:5, retraddr: 0x140001021,offset:0x1021</span><br><span class="line"> and MessageBoxA return value:  0x1 </span><br><span class="line"> and sub_0x14000102A return value: 0x1</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-特定DLL、SO的trace"><a href="#3-3-特定DLL、SO的trace" class="headerlink" title="3.3 特定DLL、SO的trace"></a>3.3 特定DLL、SO的trace</h3><p>在分析时我们也经常遇到漏洞或者样本等将主要功能逻辑放到库中加载的情况，在hutrace中trace程序运行时可以同时指定需要额外记录执行流程的DLL或So名称：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -print_ins_info -trace_to_librarys dll_test.dll  -- rundll32 dll_test_x64.dll,#1</span><br></pre></td></tr></table></figure>
+
+<p>在使用时同时注意，windows上hutrace获取的模块名是根据其导出信息获取，有时候出现指定模块文件名记录却未记录到的情况，可以使用PE编辑工具查看模块导出表结构体中的模块名称是否与模块文件名称一致，这种情况很少，不过找测试用例时刚好找到一个qiling的这个demo程序dll_test_x64.dll是这个样子的：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/3.png" alt=""></p>
+<p>故虽然文件名为“dll_test_x64.dll”，“-trace_to_librarys”参数仍旧指定为“dll_test.dll”，最终trace的日志除包含rundll32.exe主程序代码外还会记录dll_test_x64.dll的main函数及导出函数的执行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">~~1008~~ KERNELBASE.dll!LoadLibraryExW N:0x2c</span><br><span class="line">    arg 0: dll_test_x64.dll (type=wchar_t*, size=0x0)</span><br><span class="line">    arg 1: 0x0 (type=HANDLE, size=0x8)</span><br><span class="line">    arg 2: 0x8 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:5, retraddr: 0xffd32b50,offset:0x2b50</span><br><span class="line">...</span><br><span class="line">7fefa001009:</span><br><span class="line">     xor    r9d, r9d</span><br><span class="line">     lea    r8, &lt;rel&gt; [0x000007fefa002178]</span><br><span class="line">     lea    rdx, &lt;rel&gt; [0x000007fefa002188]</span><br><span class="line">     xor    ecx, ecx</span><br><span class="line">     call   &lt;rel&gt; qword ptr [0x000007fefa002078]</span><br><span class="line">I7fefa00101c|76be12b8</span><br><span class="line">~~1008~~ USER32.dll!MessageBoxA N:0x3c</span><br><span class="line">    arg 0: &lt;null&gt; (type=&lt;unknown&gt;, size=0x0)</span><br><span class="line">    arg 1: Inside process attach (type=char*, size=0x0)</span><br><span class="line">    arg 2: My caption (type=char*, size=0x0)</span><br><span class="line">    arg 3: 0x0 (type=uint, size=0x4)</span><br><span class="line"> and return to module id:16, retraddr: 0x7fefa001022,offset:0x1022</span><br><span class="line">...</span><br><span class="line"> and LoadLibraryExW return value:  0x7fefa000000 </span><br><span class="line"></span><br><span class="line">//每个生成的trace日志文件的末尾都会附加程序加载的所有模块信息，id:16对应的模块即为dll_test_x64.dll，可以看到该模块内0x7fefa001009地址运行的指令等也被正常记录。</span><br><span class="line">Module Table: version 4, count 25</span><br><span class="line">Columns: id, containing_id, start, end, entry, offset, checksum, timestamp, path</span><br><span class="line">...</span><br><span class="line"> 16,  16, 0x000007fefa000000, 0x000007fefa008000, 0x000007fefa001410, 00000000800e4d18, 0x00000000, 0x5ec53b54,  C:\Users\huhu\Desktop\bin64\dll_test_x64.dll</span><br></pre></td></tr></table></figure>
+
+<p>对于一些申请可读写执行属性内存块存放代码并执行的情况，这些不在任意模块中的代码常见于漏洞Shellcode或病毒样本runpe、注入等，hutrace会进行判断并将不在任意模块空间的代码执行纳入默认记录范围。</p>
+<p>如果需要同时追踪多个加载模块的运行代码，在“-trace_to_librarys”参数中设置“1.dll!2.dll!3.dll”即可,我一般也就只追踪一个模块，需要同时记录多个模块的情况比较少见。</p>
+<h3 id="3-4-指定起始、结束地址"><a href="#3-4-指定起始、结束地址" class="headerlink" title="3.4 指定起始、结束地址"></a>3.4 指定起始、结束地址</h3><p>该功能主要目的是划分关注的代码范围，提高trace程序运行效率并降低生成的日志文件体积，使用也比较简单，运行hutrace时指定需要开始或结束记录的基本块头部或尾部地址（注意并非指定任意地址，为了性能考虑只对基本块头部和尾部进行判断）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -print_ins_info  -record_start_addr 0x40524A  -record_end_addr 0x402422 -- nc64.exe</span><br></pre></td></tr></table></figure>
+<p>实际记录的结果不再展示，指定的起始与结束地址必须为基本块的头部或尾部。对应IDA的信息如下：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/4.png" alt=""></p>
+<p>常规情况下指定地址记录时设置的为固定值，这时一般要求程序的地址空间固定，可以使用petools等工具设置文件头属性不要求程序进行重定位：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/5.png" alt=""></p>
+<p>亦可同时设置关闭ASLR(Win7关闭ASLR.bat)：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">@echo off</span><br><span class="line">setlocal EnableDelayedExpansion </span><br><span class="line">reg add &quot;HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management&quot; /v &quot;MoveImages&quot; /t REG_DWORD /d &quot;0&quot; /f %将程序写进注册表,开机自启动%</span><br><span class="line">echo Register successfully.</span><br><span class="line">pause&gt;nul %&gt;nul的作用是不显示请按任意键继续%</span><br></pre></td></tr></table></figure>
+<p>Linux关闭ASLR：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo sh -c &quot;echo 0 &gt; /proc/sys/kernel/randomize_va_space&quot;</span><br></pre></td></tr></table></figure>
+
+<p>对于申请内存并拷贝代码执行情况可以考虑其它手段来固定其申请的内存地址（hutrace提供了一个演示的插件功能可以达成该目的，详见下一篇hutrace在windows系统的应用文章中对任意地址hook功能的介绍），如果不想修改PE文件（有的程序会对完整性进行校验、有时关闭ASLR仍旧存在模块地址随机的情况、还有关闭ASLR但hutrace加载导致的模块地址变化等等情况），这种情况下可以使用“模块名+偏移”方式替代固定地址方式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -print_ins_info -trace_to_librarys dll_test.dll -record_start_addr rundll32.exe+0x2d30 -record_end_addr dll_test.dll+0x1030 -- rundll32 dll_test_x64.dll,#1</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-数据流trace"><a href="#4-数据流trace" class="headerlink" title="4. 数据流trace"></a>4. 数据流trace</h2><h3 id="4-1-寄存器及内存记录"><a href="#4-1-寄存器及内存记录" class="headerlink" title="4.1 寄存器及内存记录"></a>4.1 寄存器及内存记录</h3><p>逆向分析时经常遇到需要定位处理特定数据代码的需求，常规调试手段就不用说了，除了常规手段，“四哥”曾经发过利用Windbg TTD以及Dynamorio代码覆盖率等技术处理该需求的文章：<br><a href="http://scz.617.cn:8/windows/202202101230.txt" target="_blank" rel="noopener">http://scz.617.cn:8/windows/202202101230.txt</a><br><a href="http://scz.617.cn:8/windows/202201251528.txt" target="_blank" rel="noopener">http://scz.617.cn:8/windows/202201251528.txt</a><br>上述print_ins_info功能中指令流记录实际上使用的是基本块插桩，无法记录到每一条指令运行时的详细信息，通过指令插桩可以记录到每条指令记录的寄存器以及内存信息，但是引入的主要问题就是会大大降低程序的运行速度，尤其是处理一些图形界面程序时，可以通过逆向或者hutrace的指令流记录，再结合指定起始、结束地址功能进行每条指令运行信息的记录。</p>
+<p>常规使用方式的命令格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -print_ins_reg -- test.exe</span><br></pre></td></tr></table></figure>
+<p>得到的记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">B0x140001000-0x14000101c         //对应下面6条指令所在基本块范围</span><br><span class="line">	I0x140001000|sub    rsp, 0x28                                	|	rsp:0x12ff58</span><br><span class="line">	I0x140001004|xor    rcx, rcx                                 	|	rcx:0x7fffffdf000	|	rcx:0x7fffffdf000</span><br><span class="line">	I0x140001007|lea    rdx, &lt;rel&gt; [0x0000000140003000]          	|	rdx:0x140001000	|	D0:0x140003000	|	S0P:0x6f77206f6c6c6548</span><br><span class="line">	I0x14000100e|lea    r8, &lt;rel&gt; [0x000000014000300d]           	|	r8:0x7fffffdf000	|	D0:0x14000300d	|	S0P:0x74736574</span><br><span class="line">	I0x140001015|mov    r9, 0x00000040                           	|	r9:0x140001000</span><br><span class="line">	I0x14000101c|call   0x000000014000102a                       	|0x14000102a</span><br><span class="line">C14000101c|14000102a</span><br><span class="line">J14000102a|78c912b8</span><br><span class="line">~~1616~~ USER32.dll!MessageBoxA N:0x1</span><br><span class="line">    arg 0: &lt;null&gt; (type=&lt;unknown&gt;, size=0x0)</span><br><span class="line">    arg 1: Hello world! (type=char*, size=0x0)</span><br><span class="line">    arg 2: test (type=char*, size=0x0)</span><br><span class="line">    arg 3: 0x40 (type=uint, size=0x4)</span><br><span class="line"> and return to module id:5, retraddr: 0x140001021,offset:0x1021</span><br><span class="line">B0x140001021-0x140001028</span><br><span class="line">	I0x140001021|add    rsp, 0x28                                	|	rsp:0x12ff30</span><br><span class="line"> and MessageBoxA return value:  0x1          //输出有点乱序...不影响效率的情况下暂无好的解决方案懒得改了</span><br><span class="line">	I0x140001025|xor    rax, rax                                 	|	rax:0x1	|	rax:0x1</span><br><span class="line">	I0x140001028|ret                                             	|	rsp:0x12ff58</span><br><span class="line">R140001028|78d3652d</span><br></pre></td></tr></table></figure>
+
+<p>这一部分代码实现主要参考了ddr插件，做了一部分精简，hutrace的“-print_ins_all”参数实现与原插件的功能较为一致，可以自行测试，该功能打印的内容太多不仅影响运行效率，很多时候也并不需要，仅打印寄存器以及内存的值已经能够满足大部分需求了。</p>
+<h3 id="4-2-Demo：三分钟定位calc中0x41414141-0x666666的计算指令地址"><a href="#4-2-Demo：三分钟定位calc中0x41414141-0x666666的计算指令地址" class="headerlink" title="4.2 Demo：三分钟定位calc中0x41414141*0x666666的计算指令地址"></a>4.2 Demo：三分钟定位calc中0x41414141*0x666666的计算指令地址</h3><p>下面介绍使用hutrace进行一个简单演示，快速定位计算器中计算指令位置（win7x64测试环境，win10系统计算器不行，参见四哥的文章中dynamorio部分）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe -only_from_app  -print_ret_addr  -print_ins_reg -- calc</span><br></pre></td></tr></table></figure>
+<p>在计算器中切换到程序员的16进制模式，输入并计算41414141*666666，计算结束后关闭计算器程序，使用010Edit打开trace日志，文件大小大约200多兆，直接010里搜索“41414141”，大概有500条记录，可以在搜索结果里直接查找“666666”，也可以将记录拷贝至新文件再搜索，最后一条出现“41414141”的记录也即是乘法运算的指令处：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/6.png" alt=""></p>
+<p>整个过程基本无脑操作。。trace操作过程大概两分钟，搜索1分钟,这种记录状态会较为严重的影响运行效率，最耗时也就是trace的时间，尤其是图形界面程序，会有卡顿的现象，但是总的来说已经比基于调试器的trace效率有一个很大的提升了，我自己简单测试下TTD的速度比hutrace的速度还是快很多的，其它优点也超级多，不过一旦hutrace记录完成，hutrace形成的记录结果的更为直观，清晰可搜，当然这里只是最简单的示例。</p>
+<blockquote>
+<p>曹操：“关将军真乃神人也！”，关羽：“何足道哉？吾弟张翼德，于万军之中，取敌将首级，如杀鸡取卵，探囊取物耳”（恶搞）</p>
+</blockquote>
+<h2 id="5-其它功能"><a href="#5-其它功能" class="headerlink" title="5. 其它功能"></a>5. 其它功能</h2><p>还有一些小功能，有的比较零碎简单介绍下，有的稍微麻烦点在后面的文章中进行实例介绍。</p>
+<h3 id="5-1-简易Patch"><a href="#5-1-简易Patch" class="headerlink" title="5.1 简易Patch"></a>5.1 简易Patch</h3><p>有时想对程序进行运行时的patch，可以在hutrace.config文件中设置如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">patch|0x1400010AB|0x14000114D*9090|0x140001224*9090|0x1400020A8*61616141414141616161616161</span><br></pre></td></tr></table></figure>
+<p>其中0x1400010AB代表代码执行到该位置时进行patch，此处可设置为任意地址，后面列举需要进行补丁的地址以及数据，依次对0x14000114D、0x140001224等三个地址进行数据的修改，需要设置的补丁数据为16进制字符串形式。</p>
+<p>以scyllahide的调试状态检测程序ScyllaTest_x64.exe为例，虽然hutrace可以躲避其调试状态检测功能，但是不支持ScyllaTest_x64程序的AllocConsole功能，故可以对其退出代码进行patch:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">patch|140001CC0|0x140001CDD*9090</span><br></pre></td></tr></table></figure>
+<p>虽然后续会报错AllocConsole失败，但是程序继续运行不会退出，trace得到后续代码的执行情况，同时可验证hutrace对常见反调试技术的绕过效果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe  -only_from_app -print_ret_addr -print_ins_info -- ScyllaTest_x64.exe</span><br><span class="line">INFO: C:\Users\huhu\Desktop\bin64\ScyllaTest_x64.exe sucessfully started, waiting app for exit</span><br><span class="line">Starting test loop. Press CTRL+C or the power button on your PC to exit.</span><br><span class="line"></span><br><span class="line">--------------------</span><br><span class="line">PEB_BeingDebugged:                              OK</span><br><span class="line">Wow64PEB64_BeingDebugged:                       SKIP</span><br><span class="line">PEB_NtGlobalFlag:                               OK</span><br><span class="line">Wow64PEB64_NtGlobalFlag:                        SKIP</span><br><span class="line">PEB_HeapFlags:                                  OK</span><br><span class="line">Wow64PEB64_HeapFlags:                           SKIP</span><br><span class="line">PEB_ProcessParameters:                          OK</span><br><span class="line">Wow64PEB64_ProcessParameters:                   SKIP</span><br><span class="line">IsDebuggerPresent:                              OK</span><br><span class="line">CheckRemoteDebuggerPresent:                     OK</span><br><span class="line">OutputDebugStringA_LastError:                   SKIP</span><br><span class="line">OutputDebugStringA_Exception:                   OK</span><br><span class="line">OutputDebugStringW_Exception:                   SKIP</span><br><span class="line">NtQueryInformationProcess_ProcessDebugPort:     OK</span><br><span class="line">NtQuerySystemInformation_KernelDebugger:        OK</span><br><span class="line">NtQuery_OverlappingReturnLength:                OK</span><br><span class="line">NtClose:                                        OK</span><br><span class="line">OtherOperationCount:                            OK</span><br><span class="line">--------------------</span><br></pre></td></tr></table></figure>
+<p>该功能仅作为简易的补丁操作，需实现复杂需求的话可以编写对应的Hook插件，在后面的文章中会进行详细的介绍。</p>
+<h3 id="5-2-隐藏指定函数记录"><a href="#5-2-隐藏指定函数记录" class="headerlink" title="5.2 隐藏指定函数记录"></a>5.2 隐藏指定函数记录</h3><p>在trace图形界面程序时经常有一些不需关注的函数的调用，有时记录的频次太多也可能会影响hutrace的运行，可以在hutrace.config文件中设置忽略该部分函数的记录（已经默认添加）。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">hide|KiUserCallbackDispatcher</span><br><span class="line">hide|ExpInterlockedPopEntrySListResume16</span><br><span class="line">hide|ExpInterlockedPopEntrySListFault16</span><br><span class="line">hide|ExpInterlockedPopEntrySListEnd16</span><br><span class="line">hide|ExpInterlockedPopEntrySListResume</span><br><span class="line">hide|ExpInterlockedPopEntrySListFault</span><br><span class="line">hide|ExpInterlockedPopEntrySListEnd</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-3-内存dump功能"><a href="#5-3-内存dump功能" class="headerlink" title="5.3 内存dump功能"></a>5.3 内存dump功能</h3><p>在hutrace.config文件中设置需要dump的时机以及需要dump的内存地址以及内存大小。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dump|0x14000101c|0x140000000|0x5000</span><br></pre></td></tr></table></figure>
+<p>意为代码执行到0x14000101c指令处时对内存地址0x140000000开始的0x5000大小字节的数据进行dump，和日志文件生成在同一目录，选择dump时机如0x14000101c时可以指定任意地址哦。</p>
+<h3 id="5-4-系统调用Syscall记录"><a href="#5-4-系统调用Syscall记录" class="headerlink" title="5.4 系统调用Syscall记录"></a>5.4 系统调用Syscall记录</h3><p>Linux下常用strace记录系统调用，相应需求也比较常见，而Windows上记录Syscall记录的需求比较小众，而且不同版本下的系统调用号差异较大，同时还引入一些小问题，将分别在后续两篇中Window、linux应用篇进行介绍。</p>
+<h3 id="5-5-任意地址Hook之插件编写"><a href="#5-5-任意地址Hook之插件编写" class="headerlink" title="5.5 任意地址Hook之插件编写"></a>5.5 任意地址Hook之插件编写</h3><p>略微麻烦点，同样放入第2、3篇实际应用篇分别进行Win和linux系统下插件的介绍，俩个系统略有差异。</p>
+<h2 id="6-总结"><a href="#6-总结" class="headerlink" title="6. 总结"></a>6. 总结</h2><p>hutrace的功能已经能够覆盖较多的分析场景了，无论是漏洞分析、样本分析、软件破解等等，最简单的功能就是掌握API参数及返回结果信息，同时使用print_ins_info、print_ins_reg功能可记录全部执行流程情况，进行代码或数据的追踪回溯，关键还是在性能上trace效率、trace日志文件大小以及相应的日志检索的效率，目前测试的图形界面程序虽然功能略有卡顿，都还是可以正常运行的（print_ins_reg功能最卡顿些，而且如果应用于程序的全流程跟踪或者如果遇到一些密码算法代码等会可能会形成庞大的日志文件，检索也不方便，有需求的话建议结合IDA以及指定起始、结束地址进行trace，过滤无关代码）。</p>
+<p>开发hutrace的目的只是为了提升分析效率，掌握程序执行流程，有时不需要高深的调试技巧就可以实现敏感代码的定位及回溯，说实话也少了一些调试的乐趣，整体的运行流程可以直接在010edit上检索，用高大上的词来说就是降维打击，把程序的执行流程二维化，但是调试技巧还是基础，有的分析场景下可能还是调试或者IDA怼更直观、速度更快点，能结合使用效果更佳，可开发些IDA插件对记录的地址进行符合信息标注处理、图形化展示等等。</p>
+<p>github地址：<a href="https://github.com/huhu0706/hutrace" target="_blank" rel="noopener">https://github.com/huhu0706/hutrace</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag"># 工具</a>
+              <a href="/tags/%E8%B0%83%E8%AF%95%E5%99%A8/" rel="tag"># 调试器</a>
+              <a href="/tags/dynamorio/" rel="tag"># dynamorio</a>
+              <a href="/tags/hutrace/" rel="tag"># hutrace</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2021/03/01/2021-03-01-%E4%BD%BF%E7%94%A8Unicorn%E6%A8%A1%E6%8B%9F%E8%BF%90%E8%A1%8C%E7%A0%B4%E8%A7%A3%E7%AE%80%E5%8D%95%E7%9A%84IOS-IPA-Crackme/" rel="next" title="2021-03-01-使用Unicorn模拟运行破解简单的IOS-IPA-Crackme">
+                  <i class="fa fa-chevron-left"></i> 2021-03-01-使用Unicorn模拟运行破解简单的IOS-IPA-Crackme
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/" rel="prev" title="2022-06-06-hutrace工具系列第2篇之Windows应用">
+                  2022-06-06-hutrace工具系列第2篇之Windows应用 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-简介"><span class="nav-number">1.</span> <span class="nav-text">1. 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-API记录"><span class="nav-number">2.</span> <span class="nav-text">2. API记录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-常规参数类型"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 常规参数类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Hex类型参数打印"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 Hex类型参数打印</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-结构体参数打印"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 结构体参数打印</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-执行流trace"><span class="nav-number">3.</span> <span class="nav-text">3. 执行流trace</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-基本块汇编代码输出"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 基本块汇编代码输出</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-特定Sub函数的trace"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 特定Sub函数的trace</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-特定DLL、SO的trace"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 特定DLL、SO的trace</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-指定起始、结束地址"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 指定起始、结束地址</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-数据流trace"><span class="nav-number">4.</span> <span class="nav-text">4. 数据流trace</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-寄存器及内存记录"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 寄存器及内存记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-Demo：三分钟定位calc中0x41414141-0x666666的计算指令地址"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 Demo：三分钟定位calc中0x41414141*0x666666的计算指令地址</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-其它功能"><span class="nav-number">5.</span> <span class="nav-text">5. 其它功能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-简易Patch"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 简易Patch</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-隐藏指定函数记录"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 隐藏指定函数记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-内存dump功能"><span class="nav-number">5.3.</span> <span class="nav-text">5.3 内存dump功能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-系统调用Syscall记录"><span class="nav-number">5.4.</span> <span class="nav-text">5.4 系统调用Syscall记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-任意地址Hook之插件编写"><span class="nav-number">5.5.</span> <span class="nav-text">5.5 任意地址Hook之插件编写</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-总结"><span class="nav-number">6.</span> <span class="nav-text">6. 总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">55</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">166k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:31</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

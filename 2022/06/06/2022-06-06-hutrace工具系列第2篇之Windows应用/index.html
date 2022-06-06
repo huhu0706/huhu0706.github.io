@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.2">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.2" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.2">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。">
+<meta name="keywords" content="工具,调试器,dynamorio,hutrace,Windows,漏洞分析,样本分析">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2022-06-06-hutrace工具系列第2篇之Windows应用">
+<meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;index.html">
+<meta property="og:site_name" content="huhu&#39;s blog">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;3.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;4.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;5.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;6.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;7.png">
+<meta property="og:updated_time" content="2022-06-05T14:39:09.942Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
+
+<link rel="canonical" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>2022-06-06-hutrace工具系列第2篇之Windows应用 | huhu's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">huhu's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/huhu0706" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          2022-06-06-hutrace工具系列第2篇之Windows应用
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 13:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T13:00:00+08:00">2022-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-05 22:39:09" itemprop="dateModified" datetime="2022-06-05T22:39:09+08:00">2022-06-05</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>22k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>20 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/1.png" alt=""></p>
+<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。
+</blockquote>
+<a id="more"></a>
+
+<h2 id="1-漏洞分析"><a href="#1-漏洞分析" class="headerlink" title="1. 漏洞分析"></a>1. 漏洞分析</h2><p>介绍几个简单的漏洞Exp分析示例，演示hutrace在实战中的应用，漏洞成因暂不做更为深入分析，找的漏洞的例子其实不太多，像一些有符号信息程序或者可自己编译源码的如ie系列、chrome等浏览器程序，虽然可以使用脚本对hutrace的日志中地址的符号信息进行标注，但这样操作反而有点问题搞的复杂化，最差的情况下可以把hutrace的运行日志当作参照物掌握其执行流程，不用调试回溯即可反向定位到之前执行的代码流程。</p>
+<h3 id="1-1-CVE-2017-11882-office公式编辑器漏洞分析"><a href="#1-1-CVE-2017-11882-office公式编辑器漏洞分析" class="headerlink" title="1.1 CVE-2017-11882  office公式编辑器漏洞分析"></a>1.1 CVE-2017-11882  office公式编辑器漏洞分析</h3><p>样本来源：<a href="https://github.com/unamer/CVE-2017-11882" target="_blank" rel="noopener">https://github.com/unamer/CVE-2017-11882</a> </p>
+<p>shellcode功能为重新创建一个傀儡进程EQNEDT32.EXE进程并注入、释放并执行一个3k大小的弹框程序。win7x32+office2010测试环境，执行以下命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;drconfig.exe -reg EQNEDT32.EXE -syswide_on -c hutracelib.dll -only_from_app -print_ret_addr -print_ins_info -logdir C:\Users\admin\Desktop\bin\ -config C:\Users\admin\Desktop\bin\hutrace.config</span><br><span class="line">WARNING: on Windows 7+, syswide_on relaxes system security by removing certain code signing requirements</span><br></pre></td></tr></table></figure>
+<p>这里没有使用之前hutrace.exe直接启动Word程序，因为公式编辑器进程EQNEDT32.EXE是通过RPC方式启动，而dynamorio的追踪子进程功能只能捕捉默认的CreateProcess等方式启动的子进程，独立的EQNEDT32.EXE进程无法追踪，但是可以使用dynamorio的自动附加功能，使用dynamorio中自带的drconfig.exe为EQNEDT32.EXE进程注册启动时自动注入dynamorio插件。</p>
+<p>下面直接在测试环境使用word打开test.rtf文件，日志目录中生成的文件中我们只需要关注下面三个：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/2.png" alt=""></p>
+<p>其中前两个是Shellcode执行记录的情况，而创建的傀儡进程EQNEDT32.EXE的trace日志文件huhu.EQNEDT32.EXE.02120.0000.log文件内容（从LoadlibraryA函数开始其实进程已经执行完主题功能，后面未严格处理漏洞现场环境导致进程崩溃退出了，msappid.exe功能简单只有一个弹框）：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/3.png" alt=""></p>
+<p>Shellcode功能一览无遗，也比较简单，下面主要根据日志分析漏洞执行情况，搜索API执行情况，直接从trace的日志中API调用结果的最后开始向前追溯：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">//省略部分010edit搜索的结果</span><br><span class="line">Line 250203	8h	~~696~~ KERNEL32.dll!GlobalLock N:0x187d</span><br><span class="line">Line 250210	8h	~~696~~ KERNEL32.dll!GlobalUnlock N:0x187e</span><br><span class="line">Line 250227	8h	~~696~~ KERNEL32.dll!GlobalLock N:0x187f</span><br><span class="line">Line 250234	8h	~~696~~ KERNEL32.dll!GlobalUnlock N:0x1880</span><br><span class="line">Line 250622	8h	~~696~~ KERNEL32.dll!CreateProcessA N:0x1881  &lt;-------------这里</span><br><span class="line">Line 250664	8h	~~696~~ KERNEL32.dll!WaitForDebugEvent N:0x1882</span><br><span class="line">Line 250701	8h	~~696~~ KERNEL32.dll!GetThreadContext N:0x1883</span><br><span class="line">Line 250719	8h	~~696~~ KERNEL32.dll!VirtualProtectEx N:0x1884</span><br><span class="line">Line 250725	8h	~~696~~ KERNELBASE.dll!VirtualProtectEx N:0x1885</span><br><span class="line">Line 250770	8h	~~696~~ KERNEL32.dll!WriteProcessMemory N:0x1886</span><br><span class="line">Line 250776	8h	~~696~~ KERNELBASE.dll!WriteProcessMemory N:0x1887</span><br><span class="line">Line 250797	8h	~~696~~ KERNEL32.dll!SetThreadContext N:0x1888</span><br><span class="line">Line 250809	8h	~~696~~ KERNEL32.dll!DebugSetProcessKillOnExit N:0x1889</span><br><span class="line">Line 250822	8h	~~696~~ KERNEL32.dll!ContinueDebugEvent N:0x188a</span><br><span class="line">Line 250835	8h	~~696~~ KERNEL32.dll!DebugActiveProcessStop N:0x188b</span><br><span class="line">Line 250846	8h	~~696~~ KERNEL32.dll!ExitProcess N:0x188c</span><br></pre></td></tr></table></figure>
+<p>很明显漏洞触发后最先执行的既是CreateProcessA函数，双击定位到相应的位置：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">     lea    eax, [esp+0x30]</span><br><span class="line">     mov    dword ptr [esp+0x30], 0x454e5145</span><br><span class="line">     push   eax</span><br><span class="line">     push   edx</span><br><span class="line">     mov    dword ptr [esp+0x3c], 0x32335444</span><br><span class="line">     mov    dword ptr [esp+0x40], 0x4558452e</span><br><span class="line">     mov    byte ptr [esp+0x44], dl</span><br><span class="line">     call   ebx</span><br><span class="line">I6c6af6|77de2062</span><br><span class="line">~~696~~ KERNEL32.dll!CreateProcessA N:0x1881</span><br><span class="line">    arg 0: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 1: EQNEDT32.EXE (type=char*, size=0x0)</span><br><span class="line">    arg 2: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line">    arg 3: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line">    arg 4: 0x0 (type=BOOL, size=0x4)</span><br><span class="line">    arg 5: 0x2 (type=DWORD, size=0x4)</span><br><span class="line"> and return to addr:0x6c6af8</span><br></pre></td></tr></table></figure>
+<p>继续往上翻代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">411870:</span><br><span class="line">     pop    edi</span><br><span class="line">     pop    esi</span><br><span class="line">     pop    ebx</span><br><span class="line">     leave</span><br><span class="line">     ret</span><br><span class="line">R411874|402114              &lt;-------------这里</span><br><span class="line">402114:</span><br><span class="line">     ret                    &lt;-------------这里</span><br><span class="line">R402114|12f350              &lt;-------------这里</span><br><span class="line">12f350:</span><br><span class="line">     mov    eax, 0x1271eb44</span><br><span class="line">     mov    edx, 0x12345678</span><br><span class="line">     xor    eax, edx</span><br><span class="line">     mov    ecx, dword ptr [eax]</span><br><span class="line">     mov    ecx, dword ptr [ecx]</span><br><span class="line">     mov    ecx, dword ptr [ecx]</span><br><span class="line">     add    cx, 0x3c</span><br><span class="line">     jmp    ecx</span><br><span class="line">J12f366|6c6974</span><br><span class="line">6c6974:</span><br><span class="line">     push   ebp</span><br><span class="line">     mov    ebp, esp</span><br><span class="line">     and    esp, 0xf8</span><br><span class="line">     sub    esp, 0x000003c4</span><br></pre></td></tr></table></figure>
+<p>这不明显就是溢出覆盖的返回地址嘛~有的Shellcode可能会故意清除已执行代码或者栈结构，有了trace记录则不会受这种情况影响，到了这里如果结合IDA可以很容易定位溢出位置，如果继续查看该日志文件可能信息不是很大了，而且溢出位置之前的部分代码并非第一次执行，所以trace的日志里不再打印实际的汇编指令，后面继续分析，不使用IDA非要找虐的话，也可以使用hutrace的print_ins_reg功能打印所有执行指令以及指令状态信息，把上面执行的命令print_ins_info替换为print_ins_reg再次执行trace过程，这样的trace过程就比较慢了，两分钟生成了约500兆的接近全部运行状态的日志文件（注意还不是全部状态哦，只是指令引用的寄存器及内存状态信息，不过大部分情况已经足够了），虽然运行效率低点，好消息是不用像TTD等工具那样反复重放操作了，如果结合IDA的话可以在对处理流程更了解的基础上，设置只处理trace的起始地址，划分关注的代码这样trace的效率更高。</p>
+<p>我们下面演示不用调试器、IDA分析的情况下，利用无脑全流程trace的方式分析该漏洞，通过记录的指令指令状态信息定位溢出点，首先根据溢出覆盖的返回地址信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">I0x411874|ret                                             	|	esp:0x12f1d0</span><br><span class="line">I0x402114|ret                                             	|	esp:0x12f1d4</span><br></pre></td></tr></table></figure>
+<p>日志文件中搜索0x12f1d0：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/4.png" alt=""></p>
+<p>看到图中左侧框中的数据变化规律可以看出在循环处理栈中的数据，继续往上翻日志：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/5.png" alt=""></p>
+<p>这不就找到溢出点位置了，后面可以再据此根据rtf文件结构、shellcode在rtf中的位置、搜索rtf数据在trace日志文件中的处理流程等等，探究漏洞成因，结合IDA的话其实基本也可以做到不用调试就能澄清漏洞细节了，这里我就不继续了。。。</p>
+<ul>
+<li>补充说明<br>使用drconfig.exe方式在程序启动时自动注入dynamorio插件默认是追踪msappid.exe子进程的，且对msappid.exe子进程来说设置的trace运行参数是一致的，如果想对子进程设置不同的trace参数，可以设置“ -ops “-no_follow_children””参数，然后再使用drconfig.exe再对msappid.exe子进程注册并设置trace参数。<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drconfig.exe -reg EQNEDT32.EXE -syswide_on -ops &quot;-no_follow_children&quot; -c hutracelib.dll -only_from_app -print_ret_addr -print_ins_info -logdir C:\Users\admin\Desktop\bin\ -config C:\Users\admin\Desktop\bin\hutrace.config</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h3 id="1-2-CVE-2018-4990-adobe-pdf-漏洞载荷分析"><a href="#1-2-CVE-2018-4990-adobe-pdf-漏洞载荷分析" class="headerlink" title="1.2 CVE-2018-4990 adobe pdf 漏洞载荷分析"></a>1.2 CVE-2018-4990 adobe pdf 漏洞载荷分析</h3><p>继续搞个pdf的洞简单分析下，首先关闭Adobe的沙盒保护：</p>
+<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/6.png" alt=""></p>
+<p>不会影响漏洞触发，但是开启该机制会影响hutrace的trace操作，关闭之后执行下述命令指定对漏洞模块EScript.api的追踪：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;hutrace.exe  -only_from_app  -print_ret_addr  -print_ins_info -trace_to_librarys EScript.api -- &quot;C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe&quot; C:\Users\admin\Desktop\CVE-2018-4990-modify.pdf</span><br></pre></td></tr></table></figure>
+<p>漏洞的Shellcode为一个简单的MessagexBox弹框，大概三分钟的时间形成了近20个记录的线程日志，其中最大的日志文件约1.9G，这还不包含寄存器等状态信息，首先搜索其API执行情况，从后往前查看或者直接搜索MessageBox：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">//010edit搜索的部分结果</span><br><span class="line">Line 102653393	9h	~~3600~~ MSVCR120.dll!strcmp N:0x10533a</span><br><span class="line">Line 102653416	9h	~~3600~~ MSVCR120.dll!strcmp N:0x10533b</span><br><span class="line">Line 102653435	9h	~~3600~~ MSVCR120.dll!strcmp N:0x10533c</span><br><span class="line">Line 102653516	9h	~~3600~~ KERNEL32.dll!VirtualAlloc N:0x10533d</span><br><span class="line">Line 102653522	9h	~~3600~~ KERNELBASE.dll!VirtualAlloc N:0x10533e</span><br><span class="line">Line 102653597	9h	~~3600~~ KERNEL32.dll!GetProcAddress N:0x10533f</span><br><span class="line">Line 102653601	9h	~~3600~~ KERNELBASE.dll!GetProcAddress N:0x105340</span><br><span class="line">Line 102653616	9h	~~3600~~ KERNEL32.dll!LoadLibraryA N:0x105341</span><br><span class="line">Line 102653631	9h	~~3600~~ KERNEL32.dll!GetProcAddress N:0x105342</span><br><span class="line">Line 102653635	9h	~~3600~~ KERNELBASE.dll!GetProcAddress N:0x105343</span><br><span class="line">Line 102653654	9h	~~3600~~ USER32.dll!MessageBoxA N:0x105344</span><br><span class="line">Line 102653672	9h	~~3600~~ KERNEL32.dll!GetProcAddress N:0x105345</span><br><span class="line">Line 102653676	9h	~~3600~~ KERNELBASE.dll!GetProcAddress N:0x105346</span><br><span class="line">Line 102653686	9h	~~3600~~ KERNEL32.dll!ExitProcess N:0x105347</span><br><span class="line">Line 102653728	9h	~~3600~~ ntdll.dll!RtlEnterCriticalSection N:0x105348</span><br></pre></td></tr></table></figure>
+<p>查看VirtualAlloc函数附近的代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line">R23802a02|2383af18</span><br><span class="line">R2383af18|23861a4e</span><br><span class="line">R23861a5d|23858051</span><br><span class="line">R2385806e|238c18e9</span><br><span class="line">I238c18f4|23929f00</span><br><span class="line">23929f00:</span><br><span class="line">     xchg   esp, eax</span><br><span class="line">     ret</span><br><span class="line">R23929f01|238c7e76</span><br><span class="line">238c7e76:</span><br><span class="line">     pop    esp</span><br><span class="line">     pop    ecx</span><br><span class="line">     pop    ecx</span><br><span class="line">     pop    ebp</span><br><span class="line">     ret    0x0004</span><br><span class="line">R238c7e7a|23882803</span><br><span class="line">23882803:</span><br><span class="line">     ret</span><br><span class="line">R23882803|23882802</span><br><span class="line">23882802:</span><br><span class="line">     pop    ecx</span><br><span class="line">     ret</span><br><span class="line">R23882803|23811784</span><br><span class="line">R23811786|2398af26</span><br><span class="line">2398af26:</span><br><span class="line">     xchg   esi, eax</span><br><span class="line">     ret</span><br><span class="line">R2398af27|23818000</span><br><span class="line">23818000:</span><br><span class="line">     pop    ebp</span><br><span class="line">     ret</span><br><span class="line">R23818001|2390f282</span><br><span class="line">2390f282:</span><br><span class="line">     pop    ebx</span><br><span class="line">     ret</span><br><span class="line">R2390f283|23882802</span><br><span class="line">R23882803|238095c3</span><br><span class="line">238095c3:</span><br><span class="line">     pop    edi</span><br><span class="line">     ret</span><br><span class="line">R238095c4|2395b084</span><br><span class="line">2395b084:</span><br><span class="line">     pop    edx</span><br><span class="line">     ret</span><br><span class="line">R2395b085|23978e07</span><br><span class="line">23978e07:</span><br><span class="line">     pop    eax</span><br><span class="line">     ret</span><br><span class="line">R23978e08|23841ec9</span><br><span class="line">23841ec9:</span><br><span class="line">     pushad</span><br><span class="line">     ret</span><br><span class="line">R23841eca|238095c4</span><br><span class="line">238095c4:</span><br><span class="line">     ret</span><br><span class="line">R238095c4|77e305f4</span><br><span class="line">~~3600~~ KERNEL32.dll!VirtualAlloc N:0x10533d</span><br><span class="line">    arg 0: 0x0d1300b0 =&gt; 0x00000000 (type=void*, size=0x0)</span><br><span class="line">    arg 1: 0x10201 (type=size_t, size=0x4)</span><br><span class="line">    arg 2: 0x1000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 3: 0x40 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:54, retraddr: 0x23823aaa,offset:0x23aaa</span><br><span class="line">~~3600~~ KERNELBASE.dll!VirtualAlloc N:0x10533e</span><br><span class="line">    arg 0: 0x0d1300b0 =&gt; 0x00000000 (type=void*, size=0x0)</span><br><span class="line">    arg 1: 0x10201 (type=size_t, size=0x4)</span><br><span class="line">    arg 2: 0x1000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 3: 0x40 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:54, retraddr: 0x23823aaa,offset:0x23aaa</span><br><span class="line">23823aaa:</span><br><span class="line">     jmp    esp</span><br><span class="line">J23823aaa|d1300ac</span><br><span class="line"> and VirtualAlloc return value:  0xd130000 </span><br><span class="line"> and VirtualAlloc return value:  0xd130000 </span><br><span class="line">d1300ac:</span><br><span class="line">     add    byte ptr [eax], al</span><br><span class="line">     add    byte ptr [eax], al</span><br><span class="line">     nop</span><br><span class="line">     nop</span><br><span class="line">     nop</span><br></pre></td></tr></table></figure>
+<p>这不就是rop嘛，如果只关注该exp的功能的话可以往后分析其Shellcode功能，分析漏洞成因的话当然到这里还不算完，日志文件里记录的还有流程信息、内存API申请释放等的结果信息可以辅助分析成因，如果继续跟上一个漏洞一样无脑全指令状态记录的话我曾经测试过虚拟机里大概需要五六个小时，日志文件70多个G。。。虽然已经比调试器trace等快得多了，但是trace的日志太大很影响检索，也没有必要，可以考虑在一定的分析基础上再使用hutrace对trace的日志文件进行裁剪或者对漏洞成因进行一定的探究后再指定起始地址开始进行寄存器状态等的记录，也可以用Windbg的TTD、Windbg开页堆等等快速定位，手段比较多，hutrace毕竟只是一个trace工具，不是一个智能全自动化分析工具，纯粹依赖hutrace的话可能有的场景下还不如windbg的几条命令快一点，根据实际情况能辅助到分析过程即可。</p>
+<h2 id="2-病毒样本分析"><a href="#2-病毒样本分析" class="headerlink" title="2. 病毒样本分析"></a>2. 病毒样本分析</h2><p>看雪上随便找了一个apt28组织的样本，直接hutrace上去怼：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;hutrace.exe  -only_from_app  -print_ret_addr -print_ins_info -config C:\Users\admin\Desktop\bin\hutrace-apt28.config -- Win32.SofacyCarberp.bin.exe</span><br></pre></td></tr></table></figure>
+<p>在得到的trace日志中可得：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">~~2948~~ KERNEL32.dll!CreateFileW N:0x1b4</span><br><span class="line">    arg 0: C:\Users\admin\AppData\Local\cdnver.dll (type=wchar_t*, size=0x0)</span><br><span class="line">    arg 1: 0x4 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x2 (type=DWORD, size=0x4)</span><br><span class="line">    arg 3: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line">    arg 4: 0x2 (type=DWORD, size=0x4)</span><br><span class="line">    arg 5: 0x2 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x401630,offset:0x1630</span><br><span class="line">......</span><br><span class="line">//对于一些使用完后自删除的文件可以通过解析trace日志将其保存，也可以使用hutrace的dump功能。</span><br><span class="line">~~2948~~ KERNEL32.dll!WriteFile N:0x1b8</span><br><span class="line">    arg 0: 0x90 (type=HANDLE, size=0x4)</span><br><span class="line">    arg 1: 0x22f098</span><br><span class="line">000000: 4d 5a 90 00 03 00 00 00 04 00 00 00 ff ff 00 00  MZ..............</span><br><span class="line">000010: b8 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00  ........@.......</span><br><span class="line">000020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................</span><br><span class="line">000030: 00 00 00 00 00 00 00 00 00 00 00 00 d8 00 00 00  ................</span><br><span class="line">000040: 0e 1f ba 0e 00 b4 09 cd 21 b8 01 4c cd 21 54 68  ........!..L.!Th</span><br><span class="line">000050: 69 73 20 70 72 6f 67 72 61 6d 20 63 61 6e 6e 6f  is program canno</span><br><span class="line">000060: 74 20 62 65 20 72 75 6e 20 69 6e 20 44 4f 53 20  t be run in DOS </span><br><span class="line">000070: 6d 6f 64 65 2e 0d 0d 0a 24 00 00 00 00 00 00 00  mode....$.......</span><br><span class="line">000080: 21 26 0a 2b 65 47 64 78 65 47 64 78 65 47 64 78  !&amp;.+eGdxeGdxeGdx</span><br><span class="line">......</span><br><span class="line">~~2948~~ SHELL32.dll!ShellExecuteW N:0x35b</span><br><span class="line">    arg 0: 0x0 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: open (type=wchar_t*, size=0x0)</span><br><span class="line">    arg 2: RunDll32.exe  (type=wchar_t*, size=0x0)</span><br><span class="line">    arg 3: &quot;C:\Users\admin\AppData\Local\cdnver.dll&quot;,#1 (type=wchar_t*, size=0x0)</span><br><span class="line">    arg 4: &lt;null&gt; (type=wchar_t*, size=0x0)</span><br><span class="line">    arg 5: 0x0 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x40183d,offset:0x183d</span><br></pre></td></tr></table></figure>
+
+<p>恢复快照设置自动追踪rundll32.exe,并指定trace释放的cdnver.dll模块的行为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;drconfig.exe -reg rundll32.exe -syswide_on -c hutracelib.dll -only_from_app -print_ret_addr -print_ins_info  -trace_to_librarys cdnver.dll -logdir C:\Users\admin\Desktop\bin\ -config C:\Users\admin\Desktop\bin\hutrace-apt28.config</span><br></pre></td></tr></table></figure>
+<p>截取部分日志结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">~~2620~~ KERNEL32.dll!CreateMutexA N:0x50</span><br><span class="line">    arg 0: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line">    arg 1: 0x1 (type=BOOL, size=0x4)</span><br><span class="line">    arg 2: vgekW8b1st6yjzPA9fewB70o7KC (type=char*, size=0x0)</span><br><span class="line"> and return to module id:39, retraddr: 0x612d1e,offset:0x2d1e</span><br><span class="line">~~2620~~ KERNELBASE.dll!CreateMutexA N:0x51</span><br><span class="line">    arg 0: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line">    arg 1: 0x1 (type=BOOL, size=0x4)</span><br><span class="line">    arg 2: vgekW8b1st6yjzPA9fewB70o7KC (type=char*, size=0x0)</span><br><span class="line"> and return to module id:39, retraddr: 0x612d1e,offset:0x2d1e</span><br><span class="line">612d1e:                   &lt;---- 打印有些乱序，不太美观，无伤大雅，懒得改了</span><br><span class="line">     mov    edi, eax</span><br><span class="line">     call   dword ptr [0x006170b8]</span><br><span class="line"> and CreateMutexA return value:  0x120       &lt;----返回值应该比前两条指令汇编信息先打印的...</span><br><span class="line"> and CreateMutexA return value:  0x120 </span><br><span class="line">......</span><br><span class="line">~~2620~~ urlmon.dll!ObtainUserAgentString N:0x89</span><br><span class="line">    arg 0: 0x0 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: 0x0072ff20 =&gt; 0xa2 (type=DWORD*, size=0x4)</span><br><span class="line"> and return to module id:39, retraddr: 0x6136fb,offset:0x36fb</span><br><span class="line"> and ObtainUserAgentString return value:  0x0 </span><br><span class="line">    arg 1: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.1; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; .NET4.0C) (type=char*, size=0x0)</span><br><span class="line">......</span><br><span class="line">~~2620~~ ADVAPI32.dll!RegOpenKeyExA N:0x96</span><br><span class="line">    arg 0: 0x80000002 (type=&lt;unknown&gt;, size=0x0)</span><br><span class="line">    arg 1: Software\Microsoft\Windows\CurrentVersion\Internet Settings\Servers (type=char*, size=0x0)</span><br><span class="line">    arg 2: 0x0 (type=DWORD, size=0x4)</span><br><span class="line">    arg 3: 0x00000001 (type=&lt;unknown&gt;, size=0x0)</span><br><span class="line"> and return to module id:39, retraddr: 0x615279,offset:0x5279</span><br><span class="line">......</span><br><span class="line">~~2620~~ WININET.dll!InternetOpenA N:0xbc</span><br><span class="line">    arg 0: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.1; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; .NET4.0C) (type=char*, size=0x0)</span><br><span class="line">    arg 1: 0x0 (type=DWORD, size=0x4)</span><br><span class="line">    arg 2: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 3: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 4: 0x0 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:39, retraddr: 0x61485c,offset:0x485c</span><br><span class="line"> and InternetOpenA return value:  0xcc0004 </span><br><span class="line">......</span><br><span class="line">~~2620~~ WININET.dll!InternetConnectA N:0xbd</span><br><span class="line">    arg 0: 0xcc0004 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: google.com (type=char*, size=0x0)</span><br><span class="line">    arg 2: 0x1bb (type=WORD, size=0x2)</span><br><span class="line">    arg 3: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 4: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 5: 0x3 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:39, retraddr: 0x614873,offset:0x4873</span><br><span class="line"> and InternetConnectA return value:  0xcc0008 </span><br><span class="line"> ......</span><br><span class="line"> ~~2620~~ WININET.dll!HttpOpenRequestA N:0xe65</span><br><span class="line">    arg 0: 0xcc0008 (type=DWORD, size=0x4)</span><br><span class="line">    arg 1: POST (type=char*, size=0x0)</span><br><span class="line">    arg 2: /ffff/ffff/ffff/ffff/UUUUUU.vnd.radisys.msml-basic-layout/?U=R3H9gETPMuF94yrwJfA= (type=char*, size=0x0)</span><br><span class="line">    arg 3: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 4: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 5: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line"> and return to module id:39, retraddr: 0x6148a3,offset:0x48a3</span><br><span class="line"> and HttpOpenRequestA return value:  0xcc000c </span><br><span class="line">......</span><br></pre></td></tr></table></figure>
+<p>该样本实际是先使用谷歌域名测试下网络联通性，后面还会根据解析出的真正C2服务器域名信息，进行交替访问，不过我虚拟机里没联网，没有记录其与真正C2服务器域名的通信行为。</p>
+<p>常规的API Monitor工具只是记录API函数的调用行为，而hutrace则更加灵活，虽然上述例子中其实也是仅对样本的API调用情况进行了查看，实际中是可以对trace日志中更细粒度的基本块、指令、寄存器及内存情况进行分析，例如根据日志中打印的汇编指令情况可以很快澄清API函数中参数来源等，对于病毒样本类的分析使用hutrace对性能影响一般比较小，上述例子生成的trace日志加一起也只有几十兆，也完全可以使用打印寄存器和内存功能，整个分析过程可以看到完全可以不需调试器的参与，在trace日志中进行特定代码的检索也比较便捷，也可以自己做解析二次处理，在下面的插件例子中会介绍一些更个性化的应用~</p>
+<h2 id="3-Windows-Syscall记录"><a href="#3-Windows-Syscall记录" class="headerlink" title="3. Windows Syscall记录"></a>3. Windows Syscall记录</h2><p>一些木马样本、Shellcode如cs等提供syscall方式躲避杀软以及一部分AV/EDR的功能，给分析也带来了一定的难度，hutrace中添加了syscall记录的功能，可以使用-print_syscall选项开启，但是Windows上系统版本差异较大，测试中dynamorio的内置获取系统版本的函数可能会很奇怪的获取失败，如果获取失败的话hutrace会从hutrace.config文件中读取自定义设置的系统版本号进行对应版本syscall table的选择，syscall table列表提取自drstrace项目（支持到win10 1803），如果内置获取系统版本的函数调用失败且hutrace.config中未设置自定义的系统版本，会使用hutrace程序中默认设置的win7系统的系统调用表对目标程序运行时的syscall进行标记。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">//hutrace.config中设置添加下述内容设置系统版本</span><br><span class="line">winver|61</span><br><span class="line"></span><br><span class="line">//可设置的系统版本号范围来自dr_tools.h文件中的定义</span><br><span class="line">//DR_WINDOWS_VERSION_10_1803 = 105,</span><br><span class="line">//DR_WINDOWS_VERSION_10_1709 = 104,</span><br><span class="line">//DR_WINDOWS_VERSION_10_1703 = 103,</span><br><span class="line">//DR_WINDOWS_VERSION_10_1607 = 102,</span><br><span class="line">//DR_WINDOWS_VERSION_10_1511 = 101,</span><br><span class="line">//DR_WINDOWS_VERSION_10 = 100,</span><br><span class="line">//DR_WINDOWS_VERSION_8_1 = 63,</span><br><span class="line">//DR_WINDOWS_VERSION_2012_R2 = DR_WINDOWS_VERSION_8_1,</span><br><span class="line">//DR_WINDOWS_VERSION_8 = 62,</span><br><span class="line">//DR_WINDOWS_VERSION_2012 = DR_WINDOWS_VERSION_8,</span><br><span class="line">//DR_WINDOWS_VERSION_7 = 61,</span><br><span class="line">//DR_WINDOWS_VERSION_2008_R2 = DR_WINDOWS_VERSION_7,</span><br><span class="line">//DR_WINDOWS_VERSION_VISTA = 60,</span><br><span class="line">//DR_WINDOWS_VERSION_2008 = DR_WINDOWS_VERSION_VISTA,</span><br><span class="line">//DR_WINDOWS_VERSION_2003 = 52,</span><br><span class="line">//DR_WINDOWS_VERSION_XP_X64 = DR_WINDOWS_VERSION_2003,</span><br><span class="line">//DR_WINDOWS_VERSION_XP = 51,</span><br><span class="line">//DR_WINDOWS_VERSION_2000 = 50,</span><br><span class="line">//DR_WINDOWS_VERSION_NT = 40,</span><br></pre></td></tr></table></figure>
+<p>hutrace.config中不设置系统调用对应的参数类型的话，默认只打印syscall的名称，如果遇到感兴趣的syscall需要记录，可以在hutrace.config进行设置如下（以NtCreateKey为例）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">//第五个参数为UNICODE_STRING结构体的定义，其中自己多加的结构体中的int型为字节对齐的填充，参见第一篇结构体打印中的介绍。在使用结构体类型时必须指定^NUM或者^ARG确定结构体的大小和数目</span><br><span class="line">int|syscall_NtCreateKey|VOID|VOID|VOID|VOID|struct_ptr&#123;WORD.WORD.int.wchar*&#125;^NUM1|VOID|VOID</span><br><span class="line"></span><br><span class="line">//开始记录</span><br><span class="line">C:\Users\huhu\Desktop\bin64&gt;hutrace.exe  -only_from_app  -print_ret_addr  -print_ins_info  -print_syscall -- nc64.exe -lvp 8080</span><br></pre></td></tr></table></figure>
+<p>得到的日志中的syscall记录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">~~880~~ S|syscall_NtAllocateVirtualMemory_21 N:0x268             //不设置对应参数类型默认只打印syscall的名称</span><br><span class="line"> and syscall_NtAllocateVirtualMemory return</span><br><span class="line">~~880~~ S|syscall_NtCreateEvent_69 N:0x269</span><br><span class="line"> and syscall_NtCreateEvent return</span><br><span class="line">~~880~~ S|syscall_NtQueryKey_19 N:0x26a</span><br><span class="line"> and syscall_NtQueryKey return</span><br><span class="line">~~880~~ S|syscall_NtCreateKey_26 N:0x26b</span><br><span class="line">    arg 0: 0x000000000022ef68 (type=void, size=0x0)</span><br><span class="line">    arg 1: 0x0000000000020019 (type=void, size=0x0)</span><br><span class="line">    arg 2: 0x000000000022ef88 (type=void, size=0x0)</span><br><span class="line">    arg 3: 0x0000000000000000 (type=void, size=0x0)</span><br><span class="line">    arg 4: 0x000000000022f330</span><br><span class="line"> and Struct Begin:</span><br><span class="line">    arg 0: 0xa (type=WORD, size=0x2)</span><br><span class="line">    arg 1: 0xc (type=WORD, size=0x2)</span><br><span class="line">    arg 2: 0x0 (type=int, size=0x4)</span><br><span class="line">    arg 3: Class (type=wchar_t*, size=0x0)</span><br><span class="line">and Struct End</span><br><span class="line"> (type=struct_ptr&#123;WORD.WORD.int.wchar*&#125;^NUM1*, size=0x1)</span><br><span class="line">    arg 5: 0x0000000000000000 (type=void, size=0x0)</span><br><span class="line"> and syscall_NtCreateKey return</span><br></pre></td></tr></table></figure>
+<p>在Windows上界面程序一般没必要开启syscall记录，非界面程序的记录需求也比较少，默认是记录程序中所有的syscall调用，不会过滤是否为目标程序本身或者系统函数中的调用，导致trace的日志量也会比较大。</p>
+<h2 id="4-任意地址HOOK：Windows平台hutrace插件编写"><a href="#4-任意地址HOOK：Windows平台hutrace插件编写" class="headerlink" title="4. 任意地址HOOK：Windows平台hutrace插件编写"></a>4. 任意地址HOOK：Windows平台hutrace插件编写</h2><p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/7.png" alt=""></p>
+<p>调试时经常遇到需要对特定指令或数据进行运行时修改的情况，hutrace本身提供了一个简易patch的功能，但是对于一些复杂场景显得处理能力较弱，为了实现功能更强大的自定义代码注入功能，hutrace添加了插件功能，可基本实现在程序的任意运行状态修改程序运行信息，下面以一个固定VirtualAlloc内存申请基址的小需求为例，利用提供的hutrace的插件模板很容易即可实现。首先看一个演示的注入程序：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;hutrace.exe  -only_from_app  -print_ret_addr -print_ins_info -- inject.exe</span><br></pre></td></tr></table></figure>
+<p>主体功能为注入rundll32.exe弹出计算器的Shellcode（VirtualAllocEx在rundll32.exe内存空间申请0x800大小内存），为了演示，自身也加了一段申请0x1234大小的内存的代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">I4012a2|77e305f4                            &lt;-------VirtualAlloc函数地址</span><br><span class="line">~~2808~~ KERNEL32.dll!VirtualAlloc N:0x1bd</span><br><span class="line">    arg 0: 0x00000000 =&gt; 0x00000000 (type=void*, size=0x0)</span><br><span class="line">    arg 1: 0x1234 (type=size_t, size=0x4)</span><br><span class="line">    arg 2: 0x1000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 3: 0x4 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x4012a8,offset:0x12a8</span><br><span class="line">~~2808~~ KERNELBASE.dll!VirtualAlloc N:0x1be</span><br><span class="line">    arg 0: 0x00000000 =&gt; 0x00000000 (type=void*, size=0x0)</span><br><span class="line">    arg 1: 0x1234 (type=size_t, size=0x4)</span><br><span class="line">    arg 2: 0x1000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 3: 0x4 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x4012a8,offset:0x12a8</span><br><span class="line"> ...</span><br><span class="line"> and VirtualAlloc return value:  0x160000 </span><br><span class="line"> ...</span><br><span class="line"> ~~2808~~ KERNEL32.dll!CreateProcessA N:0x1bf</span><br><span class="line">    arg 0: &lt;null&gt; (type=char*, size=0x0)</span><br><span class="line">    arg 1: c:\windows\system32\rundll32.exe (type=char*, size=0x0)</span><br><span class="line">    arg 2: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line">    arg 3: &lt;null&gt; (type=&lt;unknown&gt;*, size=0x0)</span><br><span class="line">    arg 4: 0x0 (type=BOOL, size=0x4)</span><br><span class="line">    arg 5: 0x4 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x4012e7,offset:0x12e7</span><br><span class="line">4012e7:</span><br><span class="line">     push   0x00414558</span><br><span class="line">     call   0x00402149</span><br><span class="line"> and CreateProcessA return value:  0x1 </span><br><span class="line">    arg 1: c:\windows\system32\rundll32.exe (type=char*, size=0x0)</span><br><span class="line"> ...</span><br><span class="line"> I401325|77e1b42c                            &lt;-------VirtualAllocEx函数地址</span><br><span class="line">~~2808~~ KERNEL32.dll!VirtualAllocEx N:0x1da</span><br><span class="line">    arg 0: 0x58 (type=HANDLE, size=0x4)</span><br><span class="line">    arg 1: 0x00000000 =&gt; 0x00000000 (type=void*, size=0x0)</span><br><span class="line">    arg 2: 0x800 (type=size_t, size=0x4)</span><br><span class="line">    arg 3: 0x3000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 4: 0x40 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x40132b,offset:0x132b</span><br><span class="line"> ...</span><br><span class="line"> and VirtualAllocEx return value:  0xb0000</span><br></pre></td></tr></table></figure>
+<p>下面我们来使用插件把程序本身申请0x1234大小的内存地址固定为0x18000000，进程注入的Shellcode内存地址固定为0x19000000，首先在hutrace.config配置文件中添加以下内容：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hook|null|0x77e305f4|myDynamorioPlugin.dll|f_hookpre|f_hookpost</span><br><span class="line">hook|null|0x77e1b42c|myDynamorioPlugin.dll|f_hookprex|f_hookpostx</span><br></pre></td></tr></table></figure>
+<p>其中null代表不使用模块名方式寻址，也即是指示后续的0x77e305f4、0x77e1b42c为绝对地址，分别为KERNEL32.dll模块VirtualAlloc、VirtualAllocEx函数地址，在上面的记录日志里也有体现，在我虚拟机中设置了关闭ASLR,当然只要不重启系统有的dll地址也不会变化，以第一条内容为例，意思是在程序执行到0x77e305f4地址时加载自定义的插件myDynamorioPlugin.dll，并且分别在该地址对应的函数执行前后分别执行插件中的f_hookpre、f_hookpost导出函数（注意并非该地址指令执行前后，如果该地址对应的并非一个函数，可以设置f_hookpost为null，否则可能会导致程序崩溃）。</p>
+<p>VirtualAllocEx函数对应的f_hookprex、f_hookpostx函数实现类似。功能为固定返回0x19000000的内存地址，不再赘述，注意参数顺序即可，可见附件中工程代码，下面看下hutrace插件模板中对应的f_hookpre、f_hookpost函数实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">reg_t my_0x1234_flag = 0;</span><br><span class="line">reg_t my_newmem_0x1234 = 0;</span><br><span class="line">reg_t my_newsize_0x1234 = 0;</span><br><span class="line"></span><br><span class="line">MYDYNAMORIOPLUGIN_API reg_t f_hookpre(file_t outf, dr_mcontext_t *mc, reg_t ret_addr)</span><br><span class="line">&#123;</span><br><span class="line">     reg_t m_arg1 = my_getarg(mc, 1);</span><br><span class="line">     reg_t m_arg2 = my_getarg(mc, 2);</span><br><span class="line">     reg_t m_arg3 = my_getarg(mc, 3);</span><br><span class="line"></span><br><span class="line">     my_fprintf(outf, &quot;[hook]:arg_1: &quot;PIFMT&quot; \n&quot;, m_arg1);</span><br><span class="line">     my_fprintf(outf, &quot;[hook]:arg_2:  &quot;PIFMT&quot;\n&quot;, m_arg2);</span><br><span class="line">     my_fprintf(outf, &quot;[hook]:arg_3:  &quot;PIFMT&quot;\n&quot;, m_arg3);</span><br><span class="line">     my_fprintf(outf, &quot;[hook]:arg_4:  &quot;PIFMT&quot;\n&quot;, my_getarg(mc, 4));</span><br><span class="line">     my_fprintf(outf, &quot;[hook]:ret_addr: &quot;PIFMT&quot; \n&quot;, ret_addr);</span><br><span class="line"></span><br><span class="line">     if (m_arg2 == 0x1234)</span><br><span class="line">     &#123;</span><br><span class="line">          my_newmem_0x1234 = (SIZE_T)VirtualAlloc((LPVOID)0x18000000, m_arg2, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);</span><br><span class="line">          my_newsize_0x1234 = m_arg2;</span><br><span class="line">          my_0x1234_flag = TRUE;</span><br><span class="line">     &#125;</span><br><span class="line">     return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">MYDYNAMORIOPLUGIN_API reg_t f_hookpost(file_t outf, dr_mcontext_t *mc, reg_t ret_val)</span><br><span class="line">&#123;</span><br><span class="line">     //ret_val = 0xffffffff;</span><br><span class="line">     if (my_0x1234_flag)</span><br><span class="line">     &#123;</span><br><span class="line">          my_fprintf(outf, &quot;[hook]:my_newmem_0x1234: &quot;PIFMT&quot; \n&quot;, my_newmem_0x1234);</span><br><span class="line">          VirtualFree((LPVOID)ret_val, my_newsize_0x1234, MEM_DECOMMIT);</span><br><span class="line">          my_0x1234_flag = false;</span><br><span class="line">          return my_newmem_0x1234;</span><br><span class="line">     &#125;</span><br><span class="line">     my_fprintf(outf, &quot;[hook]:ret_val: &quot;PIFMT&quot; \n&quot;, ret_val);</span><br><span class="line">     return ret_val;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>写的比较简陋，也没有严格处理内存申请失败等等情况，仅作演示用，my_fprintf（写入到trace日志中）、my_getarg（按照API调用约定获取参数的值）为模板中已经实现好的函数，在f_hookpre、f_hookpost函数中可以对任意寄存器（利用传进来的mc参数）、内存进行修改，也可以调用其它API函数。</p>
+<p>下面把生成的插件放置到hutrace同目录下，再次trace目标进程inject.exe:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;hutrace.exe  -only_from_app  -print_ret_addr -print_ins_info  -- inject.exe</span><br></pre></td></tr></table></figure>
+
+<p>查看日志中的结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">I4012c4|77e305f4</span><br><span class="line">hook_plugin:myDynamorioPlugin.dll!0x350000    hook_func:f_hookpre!0x351030   &lt;---hutrace输出的调试信息</span><br><span class="line">hook_entry  null!0x77e305f4 to myDynamorioPlugin.dll!f_hookpre   &lt;---hutrace输出的调试信息</span><br><span class="line">[hook]:arg_1: 0    &lt;-----插件中my_fprintf函数的输出信息</span><br><span class="line">[hook]:arg_2:  1234</span><br><span class="line">[hook]:arg_3:  1000</span><br><span class="line">[hook]:arg_4:  4</span><br><span class="line">[hook]:ret_addr: 4012ca </span><br><span class="line">~~892~~ KERNELBASE.dll!VirtualAlloc N:0x1bd</span><br><span class="line">    arg 0: 0x00000000 =&gt; 0x00000000 (type=void*, size=0x0)</span><br><span class="line">    arg 1: 0x1234 (type=size_t, size=0x4)</span><br><span class="line">    arg 2: 0x1000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 3: 0x4 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x4012ca,offset:0x12ca</span><br><span class="line"> and VirtualAlloc return value:  0x160000 </span><br><span class="line">hook_plugin:myDynamorioPlugin.dll!0x350000    hook_func:f_hookpost!0x3510e0 &lt;---hutrace输出的调试信息</span><br><span class="line">hook_end  null!0x77e305f4 to myDynamorioPlugin.dll!f_hookpost &lt;---hutrace输出的调试信息</span><br><span class="line">[hook]:my_newmem_0x1234: 18000000 </span><br><span class="line">...</span><br><span class="line">I40131f|77e1b42c</span><br><span class="line">hook_plugin:myDynamorioPlugin.dll!0x350000    hook_func:f_hookprex!0x351150</span><br><span class="line">hook_entry  null!0x77e1b42c to myDynamorioPlugin.dll!f_hookprex</span><br><span class="line">[hook]:arg_1: 5c </span><br><span class="line">[hook]:arg_2:  0</span><br><span class="line">[hook]:arg_3:  800</span><br><span class="line">[hook]:arg_4:  3000</span><br><span class="line">[hook]:arg_5:  40</span><br><span class="line">[hook]:ret_addr: 401325 </span><br><span class="line">~~892~~ KERNELBASE.dll!VirtualAllocEx N:0x1c0</span><br><span class="line">    arg 0: 0x5c (type=HANDLE, size=0x4)</span><br><span class="line">    arg 1: 0x00000000 =&gt; 0x00000000 (type=void*, size=0x0)</span><br><span class="line">    arg 2: 0x800 (type=size_t, size=0x4)</span><br><span class="line">    arg 3: 0x3000 (type=DWORD, size=0x4)</span><br><span class="line">    arg 4: 0x40 (type=DWORD, size=0x4)</span><br><span class="line"> and return to module id:0, retraddr: 0x401325,offset:0x1325</span><br><span class="line"> and VirtualAllocEx return value:  0xc0000 </span><br><span class="line">hook_plugin:myDynamorioPlugin.dll!0x350000    hook_func:f_hookpostx!0x351220</span><br><span class="line">hook_end  null!0x77e1b42c to myDynamorioPlugin.dll!f_hookpostx</span><br><span class="line">[hook]:my_newmem_0x800: 19000000</span><br></pre></td></tr></table></figure>
+<p>可以同时trace下rundll32查看其注入的shellcode（msf生成的shellcode）确认其代码地址确实已经被替换成自己指定的值0x19000000，需要使用drconfig方式哦，hutrace的follow_children参数有时无法自动trace这类注入进程：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">19000000:</span><br><span class="line">     mov    edi, esp</span><br><span class="line">     fcmovnb st0, st1</span><br><span class="line">     fnstenv [edi-0x0c]</span><br><span class="line">19000007:</span><br><span class="line">     pop    ebp</span><br><span class="line">     push   ebp</span><br><span class="line">     pop    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">     dec    ecx</span><br><span class="line">//省略部分代码</span><br></pre></td></tr></table></figure>
+<p>这个需求的实现能够同时支撑hutrace的其它功能（record_start_addr的指定地址开始记录功能等），不过使用时需要注意会同时导致小问题，Hook的地址与API信息打印、简易Patch功能等功能冲突，如上例对VirtualAlloc函数HOOK之后即不会再打印其KERNEL32.dll模块里VirtualAlloc参数信息，当然KERNELBASE.dll的还是会打印。</p>
+<p>另外hutrace.config文件中中使用hook功能时同时支持以下语法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">hook|null|0x7612efa2|myDynamorioPlugin.dll|f_hookpre|f_hookpost</span><br><span class="line">hook|null|0x7612f273|myDynamorioPlugin.dll|f_hookpre1|null</span><br><span class="line"></span><br><span class="line">hook|test.exe|0x101c|myDynamorioPlugin.dll|f_hookpre|null</span><br><span class="line">hook|test.exe|0x102A|myDynamorioPlugin.dll|f_hookpre|f_hookpost</span><br><span class="line"></span><br><span class="line">hook|user32.dll|MessageBoxA|myDynamorioPlugin.dll|f_hookpre|f_hookpost</span><br><span class="line">hook|user32.dll|MessageBoxA+4|myDynamorioPlugin.dll|f_hookpre|f_hookpost</span><br></pre></td></tr></table></figure>
+<ul>
+<li>注意使用hook功能时kernel32.dll、kernelbase.dll的地址不能写成上述user32.dll|MessageBoxA、test.exe|0x101c的形式，直接写成绝对地址，因为该插件实际上是作为dynamroio插件运行，常规获取user32.dll的方式获取的kernel32.dll地址实际上并非目标进程中对应的地址，可以使用processexplorer查看目标进程实际上是加载了两个kernel32.dll的，而且在这种情况下实际获取的VirtualAlloc函数地址也有其它问题，不再展开描述了，但是也正是如此，hook功能中执行调用API函数才不会对trace目标进程造成影响，只是需要注意避免出现上述获取kernel32.dll地址问题。</li>
+</ul>
+<h2 id="5-总结"><a href="#5-总结" class="headerlink" title="5. 总结"></a>5. 总结</h2><ol>
+<li><p>dynamorio 8.0及以上版本编译的hutrace程序可以在Win10上运行，然而我自己测试的Win10本机运行hutrace记录的效率还不如自己的2核2g内存的“胜七”虚拟机，不知道是什么鬼原因。。。</p>
+</li>
+<li><p>hutrace源码近期暂先不发布呀，其实目前功能已经比较完善了，应该用不到改源码加啥功能，没啥技术含量，水平比较弱，写的比较随意，抽空把辣眼睛的地方改改少挨点骂。</p>
+</li>
+<li><p>另外对于一些带调试信息的程序，可以根据记录的trace日志情况，编写IDA脚本对其符号信息等进行标注，这里不做展开说明了~自己写的不多，也比较简陋。</p>
+</li>
+<li><p>对于一些日志中记录的中文等字符串信息，如在hutrace.config中设置char*类型参数打印，需要在010edit中设置简中字符集才能正常显示。</p>
+</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag"># 工具</a>
+              <a href="/tags/%E8%B0%83%E8%AF%95%E5%99%A8/" rel="tag"># 调试器</a>
+              <a href="/tags/dynamorio/" rel="tag"># dynamorio</a>
+              <a href="/tags/hutrace/" rel="tag"># hutrace</a>
+              <a href="/tags/Windows/" rel="tag"># Windows</a>
+              <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" rel="tag"># 漏洞分析</a>
+              <a href="/tags/%E6%A0%B7%E6%9C%AC%E5%88%86%E6%9E%90/" rel="tag"># 样本分析</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/" rel="next" title="2022-06-06-hutrace工具系列第1篇之基本功能介绍">
+                  <i class="fa fa-chevron-left"></i> 2022-06-06-hutrace工具系列第1篇之基本功能介绍
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/" rel="prev" title="2022-06-06-hutrace工具系列第3篇之Linux应用">
+                  2022-06-06-hutrace工具系列第3篇之Linux应用 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-漏洞分析"><span class="nav-number">1.</span> <span class="nav-text">1. 漏洞分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-CVE-2017-11882-office公式编辑器漏洞分析"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 CVE-2017-11882  office公式编辑器漏洞分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-CVE-2018-4990-adobe-pdf-漏洞载荷分析"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 CVE-2018-4990 adobe pdf 漏洞载荷分析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-病毒样本分析"><span class="nav-number">2.</span> <span class="nav-text">2. 病毒样本分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Windows-Syscall记录"><span class="nav-number">3.</span> <span class="nav-text">3. Windows Syscall记录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-任意地址HOOK：Windows平台hutrace插件编写"><span class="nav-number">4.</span> <span class="nav-text">4. 任意地址HOOK：Windows平台hutrace插件编写</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-总结"><span class="nav-number">5.</span> <span class="nav-text">5. 总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="huhu"
+    src="/images/main.gif">
+  <p class="site-author-name" itemprop="name">huhu</p>
+  <div class="site-description" itemprop="description">悟已往之不谏、知来者之可追</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">55</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/huhu0706" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;huhu0706" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:hu-qqchoi@qq.com" title="E-Mail &amp;rarr; mailto:hu-qqchoi@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">huhu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">166k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:31</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.2"></script><script src="/js/motion.js?v=7.4.2"></script>
+<script src="/js/schemes/pisces.js?v=7.4.2"></script>
+<script src="/js/next-boot.js?v=7.4.2"></script>
+
+
+
+  
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.2"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

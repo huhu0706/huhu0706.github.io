@@ -216,6 +216,393 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/" class="post-title-link" itemprop="url">2022-06-06-hutrace工具系列第4篇之衍生工具hzytrace</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 15:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T15:00:00+08:00">2022-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-04 16:28:55" itemprop="dateModified" datetime="2022-06-04T16:28:55+08:00">2022-06-04</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>13k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>11 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src=2022-06-06-hutrace工具系列第4篇之衍生工具hzytrace/图片1.png>
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;"></div>
+</center>
+
+<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;hutrace的功能已经实现的比较全面了，dynamroio与pin虽然在对程序的分析处理上各有一定的优势，但是实际中测试下来dynamorio在Linux下的兼容性要比pin稍微差一点，存在一些无法用hutrace记录但pin可以追踪的情况，而且pin提供的接口功能也更丰富，故基于pin完成了大部分hutrace的功能，也即是下面要介绍的hzytrace工具。hzytrace目前仅支持linux平台，windows平台上基于dynamrio的hutrace在效率、兼容性上均优于pin，暂时就还没完善window下的hzytrace。
+</blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/" class="post-title-link" itemprop="url">2022-06-06-hutrace工具系列第3篇之Linux应用</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 14:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T14:00:00+08:00">2022-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-05 15:03:20" itemprop="dateModified" datetime="2022-06-05T15:03:20+08:00">2022-06-05</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <center>
+    <img style="border-radius: 0.3125em;
+    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
+    src=2022-06-06-hutrace工具系列第3篇之Linux应用/图片1.png>
+    <br>
+    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
+    display: inline-block;
+    color: #999;
+    padding: 2px;"></div>
+</center>
+
+<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公开的样例较少，内容偏少一点。
+</blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/" class="post-title-link" itemprop="url">2022-06-06-hutrace工具系列第2篇之Windows应用</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 13:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T13:00:00+08:00">2022-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-05 22:39:09" itemprop="dateModified" datetime="2022-06-05T22:39:09+08:00">2022-06-05</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>22k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>20 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/1.png" alt=""></p>
+<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。
+</blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/main.gif">
+      <meta itemprop="name" content="huhu">
+      <meta itemprop="description" content="悟已往之不谏、知来者之可追">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="huhu's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/" class="post-title-link" itemprop="url">2022-06-06-hutrace工具系列第1篇之基本功能介绍</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 12:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T12:00:00+08:00">2022-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-05 14:42:12" itemprop="dateModified" datetime="2022-06-05T14:42:12+08:00">2022-06-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%9F%BA%E7%A1%80%E7%90%86%E8%AE%BA/" itemprop="url" rel="index">
+                    <span itemprop="name">基础理论</span>
+                  </a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>20k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/1.png" alt=""></p>
+<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重点略有区别，虽然hzytrace也可以支持windows，但Windows上相应需求基本可全部由hutrace达成，且效率更高，故目前暂先完善了Linux平台下的hzytrace。利用hutrace、hzytrace在很多分析场景下甚至可以不需调试就可以完成分析目的，因为Linux上找到样例偏少，本篇基本功能介绍部分将主要以Windows为例介绍其功能，实际两个平台上功能基本一致（dynamorio本身是支持arm linux、arm android的、pin也支持macos，但我自己测试移植到对应平台还有些问题，需求比较小众，对应平台也有一些替代工具，暂也没来及继续深入研究）。
+</blockquote>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://huhu0706.github.io/2021/03/01/2021-03-01-%E4%BD%BF%E7%94%A8Unicorn%E6%A8%A1%E6%8B%9F%E8%BF%90%E8%A1%8C%E7%A0%B4%E8%A7%A3%E7%AE%80%E5%8D%95%E7%9A%84IOS-IPA-Crackme/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2360,7 +2747,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">25</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2373,7 +2760,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-count">55</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -2406,7 +2793,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2021</span>
+  <span itemprop="copyrightYear">2022</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
@@ -2415,12 +2802,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-area-chart"></i>
     </span>
-    <span title="站点总字数">104k</span>
+    <span title="站点总字数">166k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:34</span>
+    <span title="站点阅读时长">2:31</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.0.0
   </div>
