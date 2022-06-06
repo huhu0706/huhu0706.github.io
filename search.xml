@@ -324,6 +324,131 @@
       </tags>
   </entry>
   <entry>
+    <title>2015-12-18-内核对象结构简介</title>
+    <url>/2015/12/18/2015-12-18-%E5%86%85%E6%A0%B8%E5%AF%B9%E8%B1%A1%E7%BB%93%E6%9E%84/</url>
+    <content><![CDATA[<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;内核对象包括多种进程对象、文件对象等等，应用层每次创建或打开进程、文件都会对相应的内核对象创建一个句柄（进程的pid值其实就是该进程内核对象的句柄），这个句柄其实就是一个索引值，在通过句柄操作内核对象时，由内核根据该句柄值查找句柄表，定位内核对象的位置，最终完成相应操作。
+</blockquote>
+<a id="more"></a>
+<p>&ensp;&ensp;&ensp;&ensp;系统所有有名的内核对象按散列表的方式保存在ObpRootDirectoryObject指针指向的对象目录表中：
+
+<p><img src="%E5%9B%BE1.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;其中HashBuckets数组每个元素都指向一个_OBJECT_DIRECTORY_ENTRY结构：
+
+<p><img src="%E5%9B%BE2.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;ChainLink指向下一个_OBJECT_DIRECTORY_ENTRY结构，Object表示所存放的内核对象，HashValue则是其散列值。因为对象目录本身也是一种内核对象，在Windbg中可以直接查看该对象详细信息，下图中可以看出!object可以列出对象目录信息及Hash表中不为空的表项。在编程实现遍历对象目录时需要注意递归调用遍历函数，避免遗漏，其实编程遍历对象目录的结果和WinObj查看的结果印象里是一样的。
+
+<p><img src="%E5%9B%BE3.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;下面以进程对象为例介绍内核对象结构，进程的内核对象地址指的就是进程的_EPROCESS结构（文件内核对象指的是_FILE_OBJECT结构,其它对象都有相应的结构），下面先来看看explorer进程的_EPROCESS结构：
+
+<p><img src="%E5%9B%BE4.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;部分结构：
+
+<p><img src="%E5%9B%BE5.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;因为不同内核对象类型所对应的结构都不一样，为了方便识别内核对象类型，所有内核对象头部前0x18字节存放内核对象头信息：
+
+<p><img src="%E5%9B%BE6.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;注意偏移0xC偏移处的TypeIndex成员，代表内核对象类型所在类型表中的偏移，在vista以前的系统上，_OBJECT_HEADER中是没有该成员的，而是直接存放一个_OBJECT_TYPE结构表示对象类型。所以在Win7及以上系统就需要根据索引值在全局符号变量ObTypeIndexTable中定位对象所指示的类型，可以看到_OBJECT_TYPE中Name字符串表示是进程对象：
+
+<p><img src="%E5%9B%BE7.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;这和直接查看进程对象类型指针得到的地址也是一样的：
+
+<p><img src="%E5%9B%BE8.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;在处理其他内核对象时也可以根据这种方式判断出所要处理的对象类型是什么，不过在编写相关程序时需要注意要根据特征搜索出ObTypeIndexTable地址，如果是调试时可以直接在Windbg中直接根据_EPROCESS结构直接查看对象类型：
+
+<p><img src="%E5%9B%BE9.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;其中HandleCount和PointerCount分别表示句柄和内核对象的引用计数。
+<p>&ensp;&ensp;&ensp;&ensp;最后需要注意下_OBJECT_TYPE类型的TypeInfo结构的其他成员：
+
+<p><img src="%E5%9B%BE10.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;其中OpenProcedure等相关结构可以指定打开进程也就是OpenProcess时调用的回调函数，替换之后也可以做到很多事情，比如监控进程创建等。
+]]></content>
+      <categories>
+        <category>系统内核</category>
+      </categories>
+      <tags>
+        <tag>内核原理</tag>
+        <tag>系统机制</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>2015-04-01-吾爱破解脱壳练习笔记</title>
+    <url>/2015/04/01/2015-04-01-%E5%90%BE%E7%88%B1%E7%A0%B4%E8%A7%A3%E8%84%B1%E5%A3%B3%E7%BB%83%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
+    <content><![CDATA[<blockquote>
+<p>主要记录吾爱破解脱壳练习集的部分练习过程及脱壳方法总结，对关键点记录备忘，实际上脱壳需要看壳所具体开启的保护措施（如穿山甲及Pespin的Debug-Block）。除穿山甲及部分壳记录遗失或未记录外整体总结不够完整，还有三四款未做深入研究，待有需求时再做记录补充。</p>
+</blockquote>
+<p>6 ：telock笔记<br>方式一：<br>最后一次异常法记录最后一次异常的位置，然后设置代码段内存访问断点。运行即在OEP处断下，dump之后使用importrec的telock插件修复即可。</p>
+<a id="more"></a>
+<p>方式二：<br>如果要是想手工绕过IAT加密，可以在程序运行之后查看IAT的起始位置，重新运行程序，在程序已经执行过硬件断点检查之后再设置对IAT的硬件读或访问断点。<br>运行到类似指令：<br>004698E7    8B85 53384000   mov eax,dword ptr ss:[ebp+403853]<br>004698ED    40              inc eax<br>004698EE    0F84 A8000000   je UnPackMe.0046999C<br>004698F4    80A5 FC2F4000 F&gt;and byte ptr ss:[ebp+402FFC],0FF<br>004698FB    0F84 9B000000   je UnPackMe.0046999C<br>00469901    80A5 FD2F4000 F&gt;and byte ptr ss:[ebp+402FFD],0FF<br>00469908    0F84 8E000000   je UnPackMe.0046999C<br>将004698FB及00469908处的je改成jne即可，再代码节断点结合最后一次异常法即可到OEP，之后就不用修复导入表了。</p>
+<p>8 ：molebox：<br>用oep定律可以直接到oep，但是这样的话importrec的修复不好。<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 455170，设置硬件访问断点，在一次赋值之后断下：<br>00455170  7C801D53  kernel32.LoadLibraryExA<br>从此开始单步跟踪，不取消断点：<br>00471666    FF15 40D84700   call dword ptr ds:[47D840]               ; kernel32.VirtualProtect<br>0047166C    85C0            test eax,eax<br>0047166E    75 0A           jnz short UnPackMe.0047167A<br>00471670    B9 0B0000EF     mov ecx,EF00000B<br>00471675    E8 9D2F0000     call UnPackMe.00474617<br>0047167A    8B4D 08         mov ecx,dword ptr ss:[ebp+8]<br>0047167D    8B55 F8         mov edx,dword ptr ss:[ebp-8]<br>00471680    8B02            mov eax,dword ptr ds:[edx]<br>00471682    8901            mov dword ptr ds:[ecx],eax<br>到了此处之后将00471682处修改IAT的指令给nop掉。到了oep之后dump即可。</p>
+<p>9 : CRYPToCRACk：<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 45512c。设置硬件访问断点：<br>00468331    5A              pop edx                                  ; UnPackMe.0045512C<br>00468332    59              pop ecx                                  ; UnPackMe.0045512C<br>00468333    5B              pop ebx                                  ; UnPackMe.0045512C<br>00468334    8B7C24 04       mov edi,dword ptr ss:[esp+0x4]           ; UnPackMe.00468384<br>00468338    893C8A          mov dword ptr ds:[edx+ecx<em>4],edi         ; UnPackMe.00468384<br>0046833B    807F 05 55      cmp byte ptr ds:[edi+0x5],0x55<br>在0046833B断下，修改00468338为mov dword ptr ds:[edx+ecx</em>4],eax，并新建eip即可绕过IAT加密。<br>同样ESP定律到达OEP。有时候会到达OEP的下一条指令。手工简单修复下堆栈及寄存器即可。</p>
+<p>10 : pespin笔记：<br>记录esp值如12ffc4，给VirtualProtect下memory access断点，可以看到有检查CC断点，不用管继续运行到VirtualProtect调用。运行到返回之后给之前的ESP-4=12ffc0值设置硬件访问断点。<br>断下来之后单步可见到以下形式的stolen code：<br>oep format:<br>xxx<br>jmp to yyy<br>yyy<br>jmp to zzz<br>记录并修复入口即可。</p>
+<p>13：GHF Protector笔记<br>给VirtualAlloc和VirtualProtect下断点，很快就可以到达第二层壳的位置，再利用ESP定律就可以到达真正的OEP，用LoadPE进行Dump时需要取消勾选 《完整转存：从磁盘粘贴文件头》  再用importrec修复时需要注意取消勾选《活动进程信息 使用来自硬盘的PE头》。</p>
+<p>14及18：Armadillo穿山甲<br>其实对OpenMutex函数下断，更改其第二次打开同名互斥量返回值即可快速将双进程变单进程，看到的其它方式略复杂。</p>
+<p>15: ACProtector<br>内存访问断点，直接两次到OEP，修复即可。</p>
+<p>16：Acprotect<br>内存访问断点，注意第一个下到原程序的数据段，第二个下到原程序代码段。不宜下到壳的段（第15个也类似）。</p>
+<p>17：PEBundle<br>ESP定律直接到OEP：<br>修复IAT时候看无效IAT的栈地址，重新运行下硬件访问断点。<br>单步不久看到此处判断是否加密IAT，je改成下图的jmp<br>00471FBF    85C0            test eax,eax<br>00471FC1    EB 25           jmp short UnPackMe.00471FE8<br>00471FC3    51              push ecx<br>od的自带就可以修复。</p>
+<p>19：PUNiSHER<br>data-code访问断点，断下后获取导入函数地址再运行到：<br>003C0890   /EB 33           jmp short 003C08C5</p>
+<p>009F022E    64:A1 00000000  mov eax,dword ptr fs:[0]<br>009F0234    50              push eax<br>009F0235    64:8925 0000000&gt;mov dword ptr fs:[0],esp<br>009F023C    83EC 68         sub esp,68<br>009F023F    53              push ebx<br>009F0240    56              push esi<br>009F0241    57              push edi<br>009F0242    8965 E8         mov dword ptr ss:[ebp-18],esp<br>009F0245    33DB            xor ebx,ebx<br>009F0247    895D FC         mov dword ptr ss:[ebp-4],ebx<br>009F024A    EB 04           jmp short 009F0250</p>
+<p>009F02B7    90              nop<br>009F02B8    FF15 7C214000   call dword ptr ds:[40217C]               ; msvcrt.<strong>set_app_type<br>009F02BE    59              pop ecx<br>009F02BF    830D 3C314000 F&gt;or dword ptr ds:[40313C],FFFFFFFF<br>009F02C6    830D 40314000 F&gt;or dword ptr ds:[403140],FFFFFFFF<br>009F02CD    FF15 78214000   call dword ptr ds:[402178]               ; msvcrt.</strong>p__fmode<br>009F02D3    8B0D 30314000   mov ecx,dword ptr ds:[403130]<br>009F02D9    8908            mov dword ptr ds:[eax],ecx<br>009F02DB    FF15 74214000   call dword ptr ds:[402174]               ; msvcrt.<strong>p</strong>commode<br>009F02E1    8B0D 2C314000   mov ecx,dword ptr ds:[40312C]<br>009F02E7    8908            mov dword ptr ds:[eax],ecx<br>009F02E9    A1 70214000     mov eax,dword ptr ds:[402170]<br>009F02EE    8B00            mov eax,dword ptr ds:[eax]<br>009F02F0    A3 38314000     mov dword ptr ds:[403138],eax<br>009F02F5    EB 04           jmp short 009F02FB</p>
+<p>009F0301    E8 06000000     call 009F030C</p>
+<p>009F0360    FFD4            call esp</p>
+<p>20：未知壳<br>00401F39   .  E8 8AFEFFFF   call UnPackMe.00401DC8                   ; \CreateProcessA</p>
+]]></content>
+      <categories>
+        <category>脱壳破解</category>
+      </categories>
+      <tags>
+        <tag>telock</tag>
+        <tag>molebox</tag>
+        <tag>CRYPToCRACk</tag>
+        <tag>pespin</tag>
+        <tag>GHF Protector</tag>
+        <tag>ACProtect</tag>
+        <tag>PEBundle</tag>
+        <tag>PUNiSHER</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>2015-12-19-句柄与句柄表结构简介</title>
+    <url>/2015/12/19/2015-12-19-%E5%8F%A5%E6%9F%84%E4%B8%8E%E5%8F%A5%E6%9F%84%E8%A1%A8%E7%BB%93%E6%9E%84/</url>
+    <content><![CDATA[<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;这里说的句柄指内核对象的句柄，窗口句柄hWnd等是另外的管理结构，不牵扯内核对象，系统的句柄表主要有三种，第一种是系统全局PspCidTable句柄表，保存所有进程和线程的句柄，第二种是进程内部句柄表，保存该进程所打开的内核对象句柄，最后一种是系统进程system的全局句柄表，这几种句柄表对应的格式都是一样的。
+</blockquote>
+<a id="more"></a>
+<h2 id="句柄表结构及PspCidTable"><a href="#句柄表结构及PspCidTable" class="headerlink" title="句柄表结构及PspCidTable"></a>句柄表结构及PspCidTable</h2><p>&ensp;&ensp;&ensp;&ensp;以PspCidTable句柄表为例查看句柄表结构，该句柄表存放所有进程、线程的句柄：
+
+<p><img src="%E5%9B%BE1.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;TableCode为0x8f122001，后三位值1代表是二级表（0为一级表、2为三级表）。WindowsXP及以上系统都是采用的动态3层句柄表，句柄数超过一级表的容量时，就会扩展为二级表，此时二级表中放的是指向一级表的指针，这个TableCode的值去掉后三位的值0x8f122000指向一级表基址，如图0x8f122000地址存放了两个一级表的指针：
+
+<p><img src="%E5%9B%BE2.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;在一级表0x8a204000中存放的每个_HANDLE_TABLE_ENTRY结构占8字节，前四个字节0x865ccab1去掉后三位标志位之后的0x865ccab0即指向一个_EPROCESS结构（其实是system进程对象）：
+
+<p><img src="%E5%9B%BE3.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;为嘛句柄表中第一个结构对应的是System进程？在我Win7系统上System进程的PID值为4。因为句柄值的低两位用来用来存储该索引对应的句柄表的层次，所以实际的句柄值都是4的倍数，除以4才能得到在句柄表中的实际索引，同样如果已知一个句柄值，也可以据此定位到该句柄所对应句柄表中的位置，每个句柄表最多能存储0x800=2048个_HANDLE_TABLE_ENTRY结构，如果给定Handle值为0x804，可以计算得到该句柄对应第0x804/0x800=2个句柄表项的第(0x804-0x800)/4=1个索引,选择刚才看到的两个一级表指针数组的第二个0x8f102000，一个_HANDLE_TABLE_ENTRY占8个字节，从而定位到句柄0x804对应的_HANDLE_TABLE_ENTRY，查看该对象属性可以确认句柄0x804对应的是一个线程对象：
+
+<p><img src="%E5%9B%BE4.jpg" alt=""><br><img src="%E5%9B%BE5.jpg" alt=""></p>
+<blockquote>
+<p>TIPS: 实际的句柄值都是4的倍数，如果给OpenProcess等函数构造PID值5/6/7，实际上打开的进程还是PID=4的system进程，这样有时可以绕过一些限制打开PID的检查。</p>
+</blockquote>
+<h2 id="进程内部句柄表"><a href="#进程内部句柄表" class="headerlink" title="进程内部句柄表"></a>进程内部句柄表</h2><p>&ensp;&ensp;&ensp;&ensp;进程内部句柄表指针存储在进程_EPROCESS结构的ObjectTable成员中：
+
+<p><img src="%E5%9B%BE6.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;可以使用API函数ZwQuerySystemInformation获取所有进程打开的内核对象句柄，参数需要设置成SystemHandleInformation，注意得到的是全部进程的全部内核对象句柄，得到存放句柄信息的缓冲区之后需要根据PID值确定句柄值属于哪个进程。
+
+<p><img src="%E5%9B%BE7.jpg" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;在使用ZwQuerySystemInformation时还有个小问题，在获取句柄信息时无法事先获取全部内核对象的大小，所以现在一般都采用上图中循环申请内存，如果缓冲区大小不匹配则返回值是STATUS_INFO_LENGTH_MISMATCH，最后在该错误不再出现时即为缓冲区大小符合要求，函数执行成功。（俺之前好奇Process Explorer的搜索句柄功能是咋实现的，后来看网上有分析说Process Explorer也是用了该函数获取句柄值的部分，Win8及以上系统上还不一定支持该函数，暂未确认了~~）
+
+]]></content>
+      <categories>
+        <category>系统内核</category>
+      </categories>
+      <tags>
+        <tag>内核原理</tag>
+        <tag>系统机制</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>2014-02-28-逆向笔记【贰】</title>
     <url>/2014/02/28/2014-02-28-%E9%80%86%E5%90%91%E7%AC%94%E8%AE%B0%E3%80%90%E8%B4%B0%E3%80%91/</url>
     <content><![CDATA[<ol>
@@ -380,131 +505,6 @@
       <tags>
         <tag>工具</tag>
         <tag>原理</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2015-04-01-吾爱破解脱壳练习笔记</title>
-    <url>/2015/04/01/2015-04-01-%E5%90%BE%E7%88%B1%E7%A0%B4%E8%A7%A3%E8%84%B1%E5%A3%B3%E7%BB%83%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
-    <content><![CDATA[<blockquote>
-<p>主要记录吾爱破解脱壳练习集的部分练习过程及脱壳方法总结，对关键点记录备忘，实际上脱壳需要看壳所具体开启的保护措施（如穿山甲及Pespin的Debug-Block）。除穿山甲及部分壳记录遗失或未记录外整体总结不够完整，还有三四款未做深入研究，待有需求时再做记录补充。</p>
-</blockquote>
-<p>6 ：telock笔记<br>方式一：<br>最后一次异常法记录最后一次异常的位置，然后设置代码段内存访问断点。运行即在OEP处断下，dump之后使用importrec的telock插件修复即可。</p>
-<a id="more"></a>
-<p>方式二：<br>如果要是想手工绕过IAT加密，可以在程序运行之后查看IAT的起始位置，重新运行程序，在程序已经执行过硬件断点检查之后再设置对IAT的硬件读或访问断点。<br>运行到类似指令：<br>004698E7    8B85 53384000   mov eax,dword ptr ss:[ebp+403853]<br>004698ED    40              inc eax<br>004698EE    0F84 A8000000   je UnPackMe.0046999C<br>004698F4    80A5 FC2F4000 F&gt;and byte ptr ss:[ebp+402FFC],0FF<br>004698FB    0F84 9B000000   je UnPackMe.0046999C<br>00469901    80A5 FD2F4000 F&gt;and byte ptr ss:[ebp+402FFD],0FF<br>00469908    0F84 8E000000   je UnPackMe.0046999C<br>将004698FB及00469908处的je改成jne即可，再代码节断点结合最后一次异常法即可到OEP，之后就不用修复导入表了。</p>
-<p>8 ：molebox：<br>用oep定律可以直接到oep，但是这样的话importrec的修复不好。<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 455170，设置硬件访问断点，在一次赋值之后断下：<br>00455170  7C801D53  kernel32.LoadLibraryExA<br>从此开始单步跟踪，不取消断点：<br>00471666    FF15 40D84700   call dword ptr ds:[47D840]               ; kernel32.VirtualProtect<br>0047166C    85C0            test eax,eax<br>0047166E    75 0A           jnz short UnPackMe.0047167A<br>00471670    B9 0B0000EF     mov ecx,EF00000B<br>00471675    E8 9D2F0000     call UnPackMe.00474617<br>0047167A    8B4D 08         mov ecx,dword ptr ss:[ebp+8]<br>0047167D    8B55 F8         mov edx,dword ptr ss:[ebp-8]<br>00471680    8B02            mov eax,dword ptr ds:[edx]<br>00471682    8901            mov dword ptr ds:[ecx],eax<br>到了此处之后将00471682处修改IAT的指令给nop掉。到了oep之后dump即可。</p>
-<p>9 : CRYPToCRACk：<br>手工绕过IAT加密的方法如下：<br>记录被加密的IAT地址，如dd 45512c。设置硬件访问断点：<br>00468331    5A              pop edx                                  ; UnPackMe.0045512C<br>00468332    59              pop ecx                                  ; UnPackMe.0045512C<br>00468333    5B              pop ebx                                  ; UnPackMe.0045512C<br>00468334    8B7C24 04       mov edi,dword ptr ss:[esp+0x4]           ; UnPackMe.00468384<br>00468338    893C8A          mov dword ptr ds:[edx+ecx<em>4],edi         ; UnPackMe.00468384<br>0046833B    807F 05 55      cmp byte ptr ds:[edi+0x5],0x55<br>在0046833B断下，修改00468338为mov dword ptr ds:[edx+ecx</em>4],eax，并新建eip即可绕过IAT加密。<br>同样ESP定律到达OEP。有时候会到达OEP的下一条指令。手工简单修复下堆栈及寄存器即可。</p>
-<p>10 : pespin笔记：<br>记录esp值如12ffc4，给VirtualProtect下memory access断点，可以看到有检查CC断点，不用管继续运行到VirtualProtect调用。运行到返回之后给之前的ESP-4=12ffc0值设置硬件访问断点。<br>断下来之后单步可见到以下形式的stolen code：<br>oep format:<br>xxx<br>jmp to yyy<br>yyy<br>jmp to zzz<br>记录并修复入口即可。</p>
-<p>13：GHF Protector笔记<br>给VirtualAlloc和VirtualProtect下断点，很快就可以到达第二层壳的位置，再利用ESP定律就可以到达真正的OEP，用LoadPE进行Dump时需要取消勾选 《完整转存：从磁盘粘贴文件头》  再用importrec修复时需要注意取消勾选《活动进程信息 使用来自硬盘的PE头》。</p>
-<p>14及18：Armadillo穿山甲<br>其实对OpenMutex函数下断，更改其第二次打开同名互斥量返回值即可快速将双进程变单进程，看到的其它方式略复杂。</p>
-<p>15: ACProtector<br>内存访问断点，直接两次到OEP，修复即可。</p>
-<p>16：Acprotect<br>内存访问断点，注意第一个下到原程序的数据段，第二个下到原程序代码段。不宜下到壳的段（第15个也类似）。</p>
-<p>17：PEBundle<br>ESP定律直接到OEP：<br>修复IAT时候看无效IAT的栈地址，重新运行下硬件访问断点。<br>单步不久看到此处判断是否加密IAT，je改成下图的jmp<br>00471FBF    85C0            test eax,eax<br>00471FC1    EB 25           jmp short UnPackMe.00471FE8<br>00471FC3    51              push ecx<br>od的自带就可以修复。</p>
-<p>19：PUNiSHER<br>data-code访问断点，断下后获取导入函数地址再运行到：<br>003C0890   /EB 33           jmp short 003C08C5</p>
-<p>009F022E    64:A1 00000000  mov eax,dword ptr fs:[0]<br>009F0234    50              push eax<br>009F0235    64:8925 0000000&gt;mov dword ptr fs:[0],esp<br>009F023C    83EC 68         sub esp,68<br>009F023F    53              push ebx<br>009F0240    56              push esi<br>009F0241    57              push edi<br>009F0242    8965 E8         mov dword ptr ss:[ebp-18],esp<br>009F0245    33DB            xor ebx,ebx<br>009F0247    895D FC         mov dword ptr ss:[ebp-4],ebx<br>009F024A    EB 04           jmp short 009F0250</p>
-<p>009F02B7    90              nop<br>009F02B8    FF15 7C214000   call dword ptr ds:[40217C]               ; msvcrt.<strong>set_app_type<br>009F02BE    59              pop ecx<br>009F02BF    830D 3C314000 F&gt;or dword ptr ds:[40313C],FFFFFFFF<br>009F02C6    830D 40314000 F&gt;or dword ptr ds:[403140],FFFFFFFF<br>009F02CD    FF15 78214000   call dword ptr ds:[402178]               ; msvcrt.</strong>p__fmode<br>009F02D3    8B0D 30314000   mov ecx,dword ptr ds:[403130]<br>009F02D9    8908            mov dword ptr ds:[eax],ecx<br>009F02DB    FF15 74214000   call dword ptr ds:[402174]               ; msvcrt.<strong>p</strong>commode<br>009F02E1    8B0D 2C314000   mov ecx,dword ptr ds:[40312C]<br>009F02E7    8908            mov dword ptr ds:[eax],ecx<br>009F02E9    A1 70214000     mov eax,dword ptr ds:[402170]<br>009F02EE    8B00            mov eax,dword ptr ds:[eax]<br>009F02F0    A3 38314000     mov dword ptr ds:[403138],eax<br>009F02F5    EB 04           jmp short 009F02FB</p>
-<p>009F0301    E8 06000000     call 009F030C</p>
-<p>009F0360    FFD4            call esp</p>
-<p>20：未知壳<br>00401F39   .  E8 8AFEFFFF   call UnPackMe.00401DC8                   ; \CreateProcessA</p>
-]]></content>
-      <categories>
-        <category>脱壳破解</category>
-      </categories>
-      <tags>
-        <tag>telock</tag>
-        <tag>molebox</tag>
-        <tag>CRYPToCRACk</tag>
-        <tag>pespin</tag>
-        <tag>GHF Protector</tag>
-        <tag>ACProtect</tag>
-        <tag>PEBundle</tag>
-        <tag>PUNiSHER</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2015-12-18-内核对象结构简介</title>
-    <url>/2015/12/18/2015-12-18-%E5%86%85%E6%A0%B8%E5%AF%B9%E8%B1%A1%E7%BB%93%E6%9E%84/</url>
-    <content><![CDATA[<blockquote>
-<p>&ensp;&ensp;&ensp;&ensp;内核对象包括多种进程对象、文件对象等等，应用层每次创建或打开进程、文件都会对相应的内核对象创建一个句柄（进程的pid值其实就是该进程内核对象的句柄），这个句柄其实就是一个索引值，在通过句柄操作内核对象时，由内核根据该句柄值查找句柄表，定位内核对象的位置，最终完成相应操作。
-</blockquote>
-<a id="more"></a>
-<p>&ensp;&ensp;&ensp;&ensp;系统所有有名的内核对象按散列表的方式保存在ObpRootDirectoryObject指针指向的对象目录表中：
-
-<p><img src="%E5%9B%BE1.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;其中HashBuckets数组每个元素都指向一个_OBJECT_DIRECTORY_ENTRY结构：
-
-<p><img src="%E5%9B%BE2.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;ChainLink指向下一个_OBJECT_DIRECTORY_ENTRY结构，Object表示所存放的内核对象，HashValue则是其散列值。因为对象目录本身也是一种内核对象，在Windbg中可以直接查看该对象详细信息，下图中可以看出!object可以列出对象目录信息及Hash表中不为空的表项。在编程实现遍历对象目录时需要注意递归调用遍历函数，避免遗漏，其实编程遍历对象目录的结果和WinObj查看的结果印象里是一样的。
-
-<p><img src="%E5%9B%BE3.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;下面以进程对象为例介绍内核对象结构，进程的内核对象地址指的就是进程的_EPROCESS结构（文件内核对象指的是_FILE_OBJECT结构,其它对象都有相应的结构），下面先来看看explorer进程的_EPROCESS结构：
-
-<p><img src="%E5%9B%BE4.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;部分结构：
-
-<p><img src="%E5%9B%BE5.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;因为不同内核对象类型所对应的结构都不一样，为了方便识别内核对象类型，所有内核对象头部前0x18字节存放内核对象头信息：
-
-<p><img src="%E5%9B%BE6.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;注意偏移0xC偏移处的TypeIndex成员，代表内核对象类型所在类型表中的偏移，在vista以前的系统上，_OBJECT_HEADER中是没有该成员的，而是直接存放一个_OBJECT_TYPE结构表示对象类型。所以在Win7及以上系统就需要根据索引值在全局符号变量ObTypeIndexTable中定位对象所指示的类型，可以看到_OBJECT_TYPE中Name字符串表示是进程对象：
-
-<p><img src="%E5%9B%BE7.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;这和直接查看进程对象类型指针得到的地址也是一样的：
-
-<p><img src="%E5%9B%BE8.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;在处理其他内核对象时也可以根据这种方式判断出所要处理的对象类型是什么，不过在编写相关程序时需要注意要根据特征搜索出ObTypeIndexTable地址，如果是调试时可以直接在Windbg中直接根据_EPROCESS结构直接查看对象类型：
-
-<p><img src="%E5%9B%BE9.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;其中HandleCount和PointerCount分别表示句柄和内核对象的引用计数。
-<p>&ensp;&ensp;&ensp;&ensp;最后需要注意下_OBJECT_TYPE类型的TypeInfo结构的其他成员：
-
-<p><img src="%E5%9B%BE10.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;其中OpenProcedure等相关结构可以指定打开进程也就是OpenProcess时调用的回调函数，替换之后也可以做到很多事情，比如监控进程创建等。
-]]></content>
-      <categories>
-        <category>系统内核</category>
-      </categories>
-      <tags>
-        <tag>内核原理</tag>
-        <tag>系统机制</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2015-12-19-句柄与句柄表结构简介</title>
-    <url>/2015/12/19/2015-12-19-%E5%8F%A5%E6%9F%84%E4%B8%8E%E5%8F%A5%E6%9F%84%E8%A1%A8%E7%BB%93%E6%9E%84/</url>
-    <content><![CDATA[<blockquote>
-<p>&ensp;&ensp;&ensp;&ensp;这里说的句柄指内核对象的句柄，窗口句柄hWnd等是另外的管理结构，不牵扯内核对象，系统的句柄表主要有三种，第一种是系统全局PspCidTable句柄表，保存所有进程和线程的句柄，第二种是进程内部句柄表，保存该进程所打开的内核对象句柄，最后一种是系统进程system的全局句柄表，这几种句柄表对应的格式都是一样的。
-</blockquote>
-<a id="more"></a>
-<h2 id="句柄表结构及PspCidTable"><a href="#句柄表结构及PspCidTable" class="headerlink" title="句柄表结构及PspCidTable"></a>句柄表结构及PspCidTable</h2><p>&ensp;&ensp;&ensp;&ensp;以PspCidTable句柄表为例查看句柄表结构，该句柄表存放所有进程、线程的句柄：
-
-<p><img src="%E5%9B%BE1.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;TableCode为0x8f122001，后三位值1代表是二级表（0为一级表、2为三级表）。WindowsXP及以上系统都是采用的动态3层句柄表，句柄数超过一级表的容量时，就会扩展为二级表，此时二级表中放的是指向一级表的指针，这个TableCode的值去掉后三位的值0x8f122000指向一级表基址，如图0x8f122000地址存放了两个一级表的指针：
-
-<p><img src="%E5%9B%BE2.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;在一级表0x8a204000中存放的每个_HANDLE_TABLE_ENTRY结构占8字节，前四个字节0x865ccab1去掉后三位标志位之后的0x865ccab0即指向一个_EPROCESS结构（其实是system进程对象）：
-
-<p><img src="%E5%9B%BE3.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;为嘛句柄表中第一个结构对应的是System进程？在我Win7系统上System进程的PID值为4。因为句柄值的低两位用来用来存储该索引对应的句柄表的层次，所以实际的句柄值都是4的倍数，除以4才能得到在句柄表中的实际索引，同样如果已知一个句柄值，也可以据此定位到该句柄所对应句柄表中的位置，每个句柄表最多能存储0x800=2048个_HANDLE_TABLE_ENTRY结构，如果给定Handle值为0x804，可以计算得到该句柄对应第0x804/0x800=2个句柄表项的第(0x804-0x800)/4=1个索引,选择刚才看到的两个一级表指针数组的第二个0x8f102000，一个_HANDLE_TABLE_ENTRY占8个字节，从而定位到句柄0x804对应的_HANDLE_TABLE_ENTRY，查看该对象属性可以确认句柄0x804对应的是一个线程对象：
-
-<p><img src="%E5%9B%BE4.jpg" alt=""><br><img src="%E5%9B%BE5.jpg" alt=""></p>
-<blockquote>
-<p>TIPS: 实际的句柄值都是4的倍数，如果给OpenProcess等函数构造PID值5/6/7，实际上打开的进程还是PID=4的system进程，这样有时可以绕过一些限制打开PID的检查。</p>
-</blockquote>
-<h2 id="进程内部句柄表"><a href="#进程内部句柄表" class="headerlink" title="进程内部句柄表"></a>进程内部句柄表</h2><p>&ensp;&ensp;&ensp;&ensp;进程内部句柄表指针存储在进程_EPROCESS结构的ObjectTable成员中：
-
-<p><img src="%E5%9B%BE6.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;可以使用API函数ZwQuerySystemInformation获取所有进程打开的内核对象句柄，参数需要设置成SystemHandleInformation，注意得到的是全部进程的全部内核对象句柄，得到存放句柄信息的缓冲区之后需要根据PID值确定句柄值属于哪个进程。
-
-<p><img src="%E5%9B%BE7.jpg" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;在使用ZwQuerySystemInformation时还有个小问题，在获取句柄信息时无法事先获取全部内核对象的大小，所以现在一般都采用上图中循环申请内存，如果缓冲区大小不匹配则返回值是STATUS_INFO_LENGTH_MISMATCH，最后在该错误不再出现时即为缓冲区大小符合要求，函数执行成功。（俺之前好奇Process Explorer的搜索句柄功能是咋实现的，后来看网上有分析说Process Explorer也是用了该函数获取句柄值的部分，Win8及以上系统上还不一定支持该函数，暂未确认了~~）
-
-]]></content>
-      <categories>
-        <category>系统内核</category>
-      </categories>
-      <tags>
-        <tag>内核原理</tag>
-        <tag>系统机制</tag>
       </tags>
   </entry>
   <entry>
@@ -575,6 +575,116 @@
 
 <p><img src="17.png" alt=""></p>
 <p>&ensp;&ensp;&ensp;&ensp;上文中正常程序和poc的tagCLS结构对比图里也圈了下fnid成员，在创建窗体时tagMENUWND结构体中该值不会被更改，所以虽然我们还能继续用我们自己注册的Atom截胡，但是无法修改fnid成员的值也就无法通过这个函数检查，后面的漏洞利用过程就失效了，至于还存不存在其它可能劫持Atom Table的搜索过程，返回伪造的tagCLS等结构，就需要更多时间去继续挖掘了。
+]]></content>
+      <categories>
+        <category>漏洞利用</category>
+      </categories>
+      <tags>
+        <tag>内核原理</tag>
+        <tag>内核漏洞</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>2017-11-28-漏洞分析：MS17-017 Windows内核提权漏洞Exploit分析</title>
+    <url>/2017/11/28/2017-11-28-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%9AMS17-017-Windows%E5%86%85%E6%A0%B8%E6%8F%90%E6%9D%83%E6%BC%8F%E6%B4%9EExploit%E5%88%86%E6%9E%90/</url>
+    <content><![CDATA[<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;原文以前首发到安全客了，这里备份一下，此次分析的内核提权漏洞为SENSEPOST的Saif El-Sherei在分析微软MS17-017补丁的时候发现的，该漏洞类型为win32k.sys驱动程序中处理GDI对象的函数EngRealizeBrush内发生的整型溢出，利用方式也比较经典，Saif El-Sherei在今年的Defcon会议上发布了一款针对Win7 Sp1 x86平台的Exploit，我就主要针对该Exploit进行了下简单的分析，如果分析过程存在问题，欢迎联系我交流指正。
+</blockquote>
+<a id="more"></a>
+<h2 id="成因分析"><a href="#成因分析" class="headerlink" title="成因分析"></a>成因分析</h2><p>&ensp;&ensp;&ensp;&ensp;Saif是通过补丁比对分析的漏洞成因，为了便于分析漏洞成因，我们先把漏洞POC代码中的喷射及后续的利用代码去掉，只留能够触发蓝屏的代码（见附件中的poc.exe），运行poc程序触发蓝屏，通过分析蓝屏信息再一步步的定位漏洞触发成因（注意：poc.exe中设置了一个调试断点，在Windbg中触发之后设置了一个虚拟机快照，以后每次重新调试恢复快照重新连接Windbg即可，这样可以尽量使每次调试时的内存布局尽量稳定）：
+
+<p><img src="1.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;查看栈回溯信息也可以看到是在ExFreePoolWithTag函数释放Pool时的故障：
+
+<p><img src="2.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;查看0xfdec3168处的Pool信息：
+
+<p><img src="3.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;根据Pooltag标识Gebr搜索到该Pool是在EngRealizeBrush函数中申请的：
+
+<p><img src="4.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;其实根据这里的内存申请代码已经能够看出此处存在问题，PALLOCMEM函数参数中申请的空间大小为ebx+0x40h，即下图中反编译的代码中的v12+0x40，v12本身为无符号整型，所以申请的空间大小至少为0x40：
+
+<p><img src="5.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;但是在之前查看0xfdec3168处的Pool信息中显示的Size为0x18（包含Pool 头部8字节，实际申请空间大小应为0x10）。可以证明此处申请内存时发生了整形溢出：
+
+<p><img src="6.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;下面再啰嗦下查看蓝屏的成因，在PALLOCMEM函数返回处下断查看申请的Pool内存地址：
+
+<p><img src="7.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;此处注意对比蓝屏时查看的0xfdec3168处Pool信息，可以发现蓝屏状态时0xfdec3178处显示的POOL_HEADER被破坏，在释放其链表的下一项0xfdec3160时导致其操作失败，下面再看下0xfdec3178地址处存放的数据是如何被覆盖的，触发写断点：
+
+<p><img src="8.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;0xfdec3160处Pool大小为0x18字节，除去8字节的POOL_HEADER大小，实际的缓冲区只有0xfdec3168-0xfdec3178这0x10字节，但是明显可以看到此处被越界覆写，也就验证了EngRealizeBrush函数调用PALLOCMEM申请内存时申请空间过小，导致后续操作该处内存空间时发生了越界。
+<p>&ensp;&ensp;&ensp;&ensp;下面来分析一下为什么PALLOCMEM函数会只申请0x10字节的内存，再来深入探究下其参数的来源：
+
+<p><img src="9.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;来看下运行时的计算过程，下图中的乘法运算即v60*v68，最终结果还需要加上0x44（68），调用PALLOCMEM函数时再加上0x40：
+
+<p><img src="10.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;此时edi寄存器的值以及ebp-18h的值均来自poc代码中CreateBitmap函数参数（HBITMAP bitmap = CreateBitmap(0x23, 0x1d41d41, 1, 1, NULL)）。最终的计算结果为0x23*0x20/(2^3)* 0x1d41d41=0xFFFFFF8C，在调用PALLOCMEM函数时又分别加上了0x44、0x40字节，0xFFFFFF8C+0x44+0x40= 0x100000010，正是在此整形溢出导致的实际申请内存时只申请了0x10字节，在EngRealizeBrush后续对申请的内存赋值时导致破坏了紧邻的Pool结构，最终触发蓝屏。
+
+<h2 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h2><p>&ensp;&ensp;&ensp;&ensp;该漏洞的利用过程还是比较精彩的，上文的poc中原作者已经构造好参数，控制最终申请0x10+0x8字节内存，能够越界覆写临近的Pool结构，为了完成提权过程可以使用多种利用方式，作者发布的Exploit使用的是混合利用Bitmap和Palette对象完成，首先控制在发生越界的SURFOBJ对象后面喷射两个相邻的Bitmap对象和Palette对象，利用越界覆写第一个Bitmap对象结构的sizlBitmap成员，获取相对地址读写权限，再利用被修改的Bitmap对象修改相邻的Palette对象的cEntries成员，继而控制这个Palette对象修改第二个Palette对象的pFirstColor成员，完成任意地址读写，替换当前进程的Token为SYSTEM进程的Token，整个利用过程也就完成了。
+
+<ol>
+<li>喷射<br>因为产生越界读写的SURFOBJ对象是在Paged Session Pool中分配的，对应的也需要利用它的特性完成喷射，第一次申请内存将首先占据内存页（0x1000字节大小）的开始部分，后续申请的内存则会从内存页的末尾开始向前排列（盗用Saif文章原图如下）：</li>
+</ol>
+<p><img src="11.png" alt=""><br>    具体做法如下：</p>
+<ul>
+<li>首先申请2000个0xFE8字节大小的空间，用于清理内存空间，内存页末尾留出0x18字节。</li>
+<li>利用创建Windows窗体类时成员lpszMenuName，控制申请0x18字节内存占用上一步空出的0x18字节。虽然窗体类tagCLS是在Desktop Heap中分配内存，但是lpszMenuName却是在内核池中分配的。</li>
+<li>释放第一步申请的0xFE8大小的空间，便于下一步布置相邻的Bitmap以及Palette对象。</li>
+<li>依次申请0x7F8字节大小的Bitmap对象以及0x7E8字节大小的Palette对象，使相邻的这两个对象占据上一步释放的空间，关于如何确定内核中Bitmap对象申请的空间大小跟CreateBitmap函数的参数之间没有确定的公式，只能不断尝试，不过CreatePalette函数参数与对应的内核中申请空间的大小已经有公开的资料了。<br>e)    释放第二步申请的窗体类，这样最后0x18字节内存就变成为了Free状态，在漏洞触发时申请的0x18内存就落入了这些内存空洞之间。<p>&ensp;&ensp;&ensp;&ensp;下面将exploit代码中喷射的代码和利用的代码注释回来，重新开始调试exploit从堆喷到执行Shellcode的步骤，同时继续在PALLOCMEM运行完毕后下断，查看发生越界的SURFOBJ对象所在的内存地址以及喷射之后越界对象地址附近的内存布局：
+
+</li>
+</ul>
+<p><img src="12.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;可以看到发生越界的SURFOBJ对象0xfd4a8ff0相邻的两个对象就是我们布局的一个Bitmap对象（0xfd4a9000）以及Palette对象（0xfd4a97f8），利用喷射完成内存地址的稳定布局之后就可以触发漏洞了。
+
+<ol start="2">
+<li>相对地址读写<p>&ensp;&ensp;&ensp;&ensp;实现相对地址读写的目的主要是能够利用只触发漏洞一次，完成从受限的越界写入转化成可以多次覆写其它更多地址的功能，注意漏洞触发时并非只有我们在分析漏洞成因的时候发现的越界覆写Pool Header，同时覆盖的还有相邻内存池的其它数据结构：
+
+</li>
+</ol>
+<p><img src="13.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;在写exploit中我们主要关注*(_DWORD *)(v16 + 0x3C) = a3这段代码，除去发生越界的SURFOBJ对象缓冲区0x10字节以及相邻的Bitmap对象的Pool header0x8字节、_BASE_OBJECT 0x10字节，实际还会覆盖相邻的Bitmap对象的sizlBitmap结构的cy成员（0x3C-0x10-0x10-0x8=0x14）：
+
+<p><img src="14.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;下面继续运行exploit覆盖该地址的数据，也可以使用windbg的gdiobjdump插件更方便的查看覆盖的数据格式，这里不再介绍了：
+
+<p><img src="15.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;因为修改了Bitmap对象的sizlBitmap结构，现在就能利用Bitmap对象的GetBitmapBits、SetBitmapBits函数完成功能更容易操作的越界读写操作，因此也就拥有了喷射在与Bitmap对象紧邻的Palette对象数据结构的数据的操作能力，具体需要读写那些Palette对象成员可以研究下Palette对象的结构：
+
+<p><img src="16.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;其中cEntries代表结构体末尾的 PALETTEENTRY数组的成员个数，pFirstColor指针则指向PALETTEENTRY数组的第一个成员的地址。下面通过利用上一步的Bitmap对象修改相邻Palette对象的cEntries为0xFFFFFFFF，就相当于是扩展了Palette对象操作的内存空间是pFirstColor指针指向的内存空间之后的任意地址。这部分流程也比较简单，首先从喷射的Bitmap对象中找到被漏洞触发越界覆写sizlBitmap结构的那个Bitmap对象，调用GetBitmapBits函数看看那个能越界就行，不再赘述。第二步根据喷射时Bitmap与Palette对象的位置关系，调用GetBitmapBits获取Bitmap对象的数据，定位到其中包含的Palette对象的cEntries成员，修改后调用SetBitmapBits函数重新写入，下图即为被修改前后的cEntries：
+
+<p><img src="17.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;至此就被覆写cEntries的Palette对象就拥有相对地址读写的能力了。
+
+<ol start="3">
+<li>任意地址读写<p>&ensp;&ensp;&ensp;&ensp;虽然已经能够完成相对地址读写的能力，但是还是局限在特定的内存空间内，所以还需要再做一点手脚完成对任意地址内存空间的操纵能力，最终完成替换Token的操作。具体做法其实类似上一步骤覆写cEntries，这里只需要覆写pFirstColor指针即可，需要修改什么地址的内存将pFirstColor指针指向该地址就行了，首先也是先寻找到被修改cEntries结构的Palette对象，不再赘述。根据喷射的特点，每隔0x1000就存在一个喷射的Palette对象，直接调用SetPaletteEntries函数对下一个内存页的Palette对象pFirstColor成员进行修改即可：
+
+</li>
+</ol>
+<p><img src="18.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;注意此处pFirstColor的值被修改为了0xfd4a8000，这个地址是第一步喷射时和发生越界的SURFOBJ对象在同一个内存页的Bitmap对象。设置成这个地址的目的是利用该地址处Bitmap对象的tag值Gh15做标示，再遍历所有喷射的Palette对象这个pFirstColor值被修改的Palette。
+
+<p><img src="19.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;到此就已经具备任意地址读写的能力了，需要修改任意地址的内存只需利用被修改cEntries的Palette去再次修改第二个Palette的pFirstColor，再对其调用SetPaletteEntries、GetPaletteEntries函数读取或修改内存数据。
+
+<ol start="4">
+<li>Shellcode<p>&ensp;&ensp;&ensp;&ensp;进行到这里就可以松口气了，内核提权Shellcode目前一般都采用替换当前进程的Token为SYSTEM进程的Token，这里没有什么需要特别说的，首先获取当前进程和SYSTEM进程的EPROCESS结构地址，利用任意地址读写将SYSTEM进程的Token写入到当前进程的Token位置就完事了。提权成功：
+
+</li>
+</ol>
+<p><img src="20.png" alt=""></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>&ensp;&ensp;&ensp;&ensp;微软最后在PALLOCMEM函数申请内存之前添加了ULongLongToULong函数做检测，如果发生了整形溢出不会跳转到申请内存的代码，已经被Patch的代码：
+
+<p><img src="21.png" alt=""></p>
+<p>&ensp;&ensp;&ensp;&ensp;除了exp所使用的这种漏洞利用方式以外，Saif也提到了其它两种方式，一种是利用两个相邻的Bitmap对象完成，由一个Bitmap对象去覆写另一个Bitmap的pvScan0来完成任意地址读写，另一种方式是利用一个Bitmap直接去修改一个Palette对象的pFirstColor指针，有兴趣的湿敷可以尝试下。
+
+<h3 id="附件"><a href="#附件" class="headerlink" title="附件"></a>附件</h3><p><a href="https://share.weiyun.com/d1ed23e7750d6a37e3db268ac9ad84ef" target="_blank" rel="noopener">https://share.weiyun.com/d1ed23e7750d6a37e3db268ac9ad84ef</a></p>
+<h3 id="参考资料："><a href="#参考资料：" class="headerlink" title="参考资料："></a>参考资料：</h3><p>Saif El-Sherei的代码及文章：<br><a href="https://github.com/sensepost/gdi-palettes-exp" target="_blank" rel="noopener">https://github.com/sensepost/gdi-palettes-exp</a></p>
 ]]></content>
       <categories>
         <category>漏洞利用</category>
@@ -687,116 +797,6 @@
         <tag>注入</tag>
         <tag>VM检测</tag>
         <tag>加密机制</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2017-11-28-漏洞分析：MS17-017 Windows内核提权漏洞Exploit分析</title>
-    <url>/2017/11/28/2017-11-28-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%9AMS17-017-Windows%E5%86%85%E6%A0%B8%E6%8F%90%E6%9D%83%E6%BC%8F%E6%B4%9EExploit%E5%88%86%E6%9E%90/</url>
-    <content><![CDATA[<blockquote>
-<p>&ensp;&ensp;&ensp;&ensp;原文以前首发到安全客了，这里备份一下，此次分析的内核提权漏洞为SENSEPOST的Saif El-Sherei在分析微软MS17-017补丁的时候发现的，该漏洞类型为win32k.sys驱动程序中处理GDI对象的函数EngRealizeBrush内发生的整型溢出，利用方式也比较经典，Saif El-Sherei在今年的Defcon会议上发布了一款针对Win7 Sp1 x86平台的Exploit，我就主要针对该Exploit进行了下简单的分析，如果分析过程存在问题，欢迎联系我交流指正。
-</blockquote>
-<a id="more"></a>
-<h2 id="成因分析"><a href="#成因分析" class="headerlink" title="成因分析"></a>成因分析</h2><p>&ensp;&ensp;&ensp;&ensp;Saif是通过补丁比对分析的漏洞成因，为了便于分析漏洞成因，我们先把漏洞POC代码中的喷射及后续的利用代码去掉，只留能够触发蓝屏的代码（见附件中的poc.exe），运行poc程序触发蓝屏，通过分析蓝屏信息再一步步的定位漏洞触发成因（注意：poc.exe中设置了一个调试断点，在Windbg中触发之后设置了一个虚拟机快照，以后每次重新调试恢复快照重新连接Windbg即可，这样可以尽量使每次调试时的内存布局尽量稳定）：
-
-<p><img src="1.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;查看栈回溯信息也可以看到是在ExFreePoolWithTag函数释放Pool时的故障：
-
-<p><img src="2.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;查看0xfdec3168处的Pool信息：
-
-<p><img src="3.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;根据Pooltag标识Gebr搜索到该Pool是在EngRealizeBrush函数中申请的：
-
-<p><img src="4.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;其实根据这里的内存申请代码已经能够看出此处存在问题，PALLOCMEM函数参数中申请的空间大小为ebx+0x40h，即下图中反编译的代码中的v12+0x40，v12本身为无符号整型，所以申请的空间大小至少为0x40：
-
-<p><img src="5.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;但是在之前查看0xfdec3168处的Pool信息中显示的Size为0x18（包含Pool 头部8字节，实际申请空间大小应为0x10）。可以证明此处申请内存时发生了整形溢出：
-
-<p><img src="6.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;下面再啰嗦下查看蓝屏的成因，在PALLOCMEM函数返回处下断查看申请的Pool内存地址：
-
-<p><img src="7.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;此处注意对比蓝屏时查看的0xfdec3168处Pool信息，可以发现蓝屏状态时0xfdec3178处显示的POOL_HEADER被破坏，在释放其链表的下一项0xfdec3160时导致其操作失败，下面再看下0xfdec3178地址处存放的数据是如何被覆盖的，触发写断点：
-
-<p><img src="8.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;0xfdec3160处Pool大小为0x18字节，除去8字节的POOL_HEADER大小，实际的缓冲区只有0xfdec3168-0xfdec3178这0x10字节，但是明显可以看到此处被越界覆写，也就验证了EngRealizeBrush函数调用PALLOCMEM申请内存时申请空间过小，导致后续操作该处内存空间时发生了越界。
-<p>&ensp;&ensp;&ensp;&ensp;下面来分析一下为什么PALLOCMEM函数会只申请0x10字节的内存，再来深入探究下其参数的来源：
-
-<p><img src="9.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;来看下运行时的计算过程，下图中的乘法运算即v60*v68，最终结果还需要加上0x44（68），调用PALLOCMEM函数时再加上0x40：
-
-<p><img src="10.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;此时edi寄存器的值以及ebp-18h的值均来自poc代码中CreateBitmap函数参数（HBITMAP bitmap = CreateBitmap(0x23, 0x1d41d41, 1, 1, NULL)）。最终的计算结果为0x23*0x20/(2^3)* 0x1d41d41=0xFFFFFF8C，在调用PALLOCMEM函数时又分别加上了0x44、0x40字节，0xFFFFFF8C+0x44+0x40= 0x100000010，正是在此整形溢出导致的实际申请内存时只申请了0x10字节，在EngRealizeBrush后续对申请的内存赋值时导致破坏了紧邻的Pool结构，最终触发蓝屏。
-
-<h2 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h2><p>&ensp;&ensp;&ensp;&ensp;该漏洞的利用过程还是比较精彩的，上文的poc中原作者已经构造好参数，控制最终申请0x10+0x8字节内存，能够越界覆写临近的Pool结构，为了完成提权过程可以使用多种利用方式，作者发布的Exploit使用的是混合利用Bitmap和Palette对象完成，首先控制在发生越界的SURFOBJ对象后面喷射两个相邻的Bitmap对象和Palette对象，利用越界覆写第一个Bitmap对象结构的sizlBitmap成员，获取相对地址读写权限，再利用被修改的Bitmap对象修改相邻的Palette对象的cEntries成员，继而控制这个Palette对象修改第二个Palette对象的pFirstColor成员，完成任意地址读写，替换当前进程的Token为SYSTEM进程的Token，整个利用过程也就完成了。
-
-<ol>
-<li>喷射<br>因为产生越界读写的SURFOBJ对象是在Paged Session Pool中分配的，对应的也需要利用它的特性完成喷射，第一次申请内存将首先占据内存页（0x1000字节大小）的开始部分，后续申请的内存则会从内存页的末尾开始向前排列（盗用Saif文章原图如下）：</li>
-</ol>
-<p><img src="11.png" alt=""><br>    具体做法如下：</p>
-<ul>
-<li>首先申请2000个0xFE8字节大小的空间，用于清理内存空间，内存页末尾留出0x18字节。</li>
-<li>利用创建Windows窗体类时成员lpszMenuName，控制申请0x18字节内存占用上一步空出的0x18字节。虽然窗体类tagCLS是在Desktop Heap中分配内存，但是lpszMenuName却是在内核池中分配的。</li>
-<li>释放第一步申请的0xFE8大小的空间，便于下一步布置相邻的Bitmap以及Palette对象。</li>
-<li>依次申请0x7F8字节大小的Bitmap对象以及0x7E8字节大小的Palette对象，使相邻的这两个对象占据上一步释放的空间，关于如何确定内核中Bitmap对象申请的空间大小跟CreateBitmap函数的参数之间没有确定的公式，只能不断尝试，不过CreatePalette函数参数与对应的内核中申请空间的大小已经有公开的资料了。<br>e)    释放第二步申请的窗体类，这样最后0x18字节内存就变成为了Free状态，在漏洞触发时申请的0x18内存就落入了这些内存空洞之间。<p>&ensp;&ensp;&ensp;&ensp;下面将exploit代码中喷射的代码和利用的代码注释回来，重新开始调试exploit从堆喷到执行Shellcode的步骤，同时继续在PALLOCMEM运行完毕后下断，查看发生越界的SURFOBJ对象所在的内存地址以及喷射之后越界对象地址附近的内存布局：
-
-</li>
-</ul>
-<p><img src="12.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;可以看到发生越界的SURFOBJ对象0xfd4a8ff0相邻的两个对象就是我们布局的一个Bitmap对象（0xfd4a9000）以及Palette对象（0xfd4a97f8），利用喷射完成内存地址的稳定布局之后就可以触发漏洞了。
-
-<ol start="2">
-<li>相对地址读写<p>&ensp;&ensp;&ensp;&ensp;实现相对地址读写的目的主要是能够利用只触发漏洞一次，完成从受限的越界写入转化成可以多次覆写其它更多地址的功能，注意漏洞触发时并非只有我们在分析漏洞成因的时候发现的越界覆写Pool Header，同时覆盖的还有相邻内存池的其它数据结构：
-
-</li>
-</ol>
-<p><img src="13.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;在写exploit中我们主要关注*(_DWORD *)(v16 + 0x3C) = a3这段代码，除去发生越界的SURFOBJ对象缓冲区0x10字节以及相邻的Bitmap对象的Pool header0x8字节、_BASE_OBJECT 0x10字节，实际还会覆盖相邻的Bitmap对象的sizlBitmap结构的cy成员（0x3C-0x10-0x10-0x8=0x14）：
-
-<p><img src="14.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;下面继续运行exploit覆盖该地址的数据，也可以使用windbg的gdiobjdump插件更方便的查看覆盖的数据格式，这里不再介绍了：
-
-<p><img src="15.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;因为修改了Bitmap对象的sizlBitmap结构，现在就能利用Bitmap对象的GetBitmapBits、SetBitmapBits函数完成功能更容易操作的越界读写操作，因此也就拥有了喷射在与Bitmap对象紧邻的Palette对象数据结构的数据的操作能力，具体需要读写那些Palette对象成员可以研究下Palette对象的结构：
-
-<p><img src="16.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;其中cEntries代表结构体末尾的 PALETTEENTRY数组的成员个数，pFirstColor指针则指向PALETTEENTRY数组的第一个成员的地址。下面通过利用上一步的Bitmap对象修改相邻Palette对象的cEntries为0xFFFFFFFF，就相当于是扩展了Palette对象操作的内存空间是pFirstColor指针指向的内存空间之后的任意地址。这部分流程也比较简单，首先从喷射的Bitmap对象中找到被漏洞触发越界覆写sizlBitmap结构的那个Bitmap对象，调用GetBitmapBits函数看看那个能越界就行，不再赘述。第二步根据喷射时Bitmap与Palette对象的位置关系，调用GetBitmapBits获取Bitmap对象的数据，定位到其中包含的Palette对象的cEntries成员，修改后调用SetBitmapBits函数重新写入，下图即为被修改前后的cEntries：
-
-<p><img src="17.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;至此就被覆写cEntries的Palette对象就拥有相对地址读写的能力了。
-
-<ol start="3">
-<li>任意地址读写<p>&ensp;&ensp;&ensp;&ensp;虽然已经能够完成相对地址读写的能力，但是还是局限在特定的内存空间内，所以还需要再做一点手脚完成对任意地址内存空间的操纵能力，最终完成替换Token的操作。具体做法其实类似上一步骤覆写cEntries，这里只需要覆写pFirstColor指针即可，需要修改什么地址的内存将pFirstColor指针指向该地址就行了，首先也是先寻找到被修改cEntries结构的Palette对象，不再赘述。根据喷射的特点，每隔0x1000就存在一个喷射的Palette对象，直接调用SetPaletteEntries函数对下一个内存页的Palette对象pFirstColor成员进行修改即可：
-
-</li>
-</ol>
-<p><img src="18.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;注意此处pFirstColor的值被修改为了0xfd4a8000，这个地址是第一步喷射时和发生越界的SURFOBJ对象在同一个内存页的Bitmap对象。设置成这个地址的目的是利用该地址处Bitmap对象的tag值Gh15做标示，再遍历所有喷射的Palette对象这个pFirstColor值被修改的Palette。
-
-<p><img src="19.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;到此就已经具备任意地址读写的能力了，需要修改任意地址的内存只需利用被修改cEntries的Palette去再次修改第二个Palette的pFirstColor，再对其调用SetPaletteEntries、GetPaletteEntries函数读取或修改内存数据。
-
-<ol start="4">
-<li>Shellcode<p>&ensp;&ensp;&ensp;&ensp;进行到这里就可以松口气了，内核提权Shellcode目前一般都采用替换当前进程的Token为SYSTEM进程的Token，这里没有什么需要特别说的，首先获取当前进程和SYSTEM进程的EPROCESS结构地址，利用任意地址读写将SYSTEM进程的Token写入到当前进程的Token位置就完事了。提权成功：
-
-</li>
-</ol>
-<p><img src="20.png" alt=""></p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>&ensp;&ensp;&ensp;&ensp;微软最后在PALLOCMEM函数申请内存之前添加了ULongLongToULong函数做检测，如果发生了整形溢出不会跳转到申请内存的代码，已经被Patch的代码：
-
-<p><img src="21.png" alt=""></p>
-<p>&ensp;&ensp;&ensp;&ensp;除了exp所使用的这种漏洞利用方式以外，Saif也提到了其它两种方式，一种是利用两个相邻的Bitmap对象完成，由一个Bitmap对象去覆写另一个Bitmap的pvScan0来完成任意地址读写，另一种方式是利用一个Bitmap直接去修改一个Palette对象的pFirstColor指针，有兴趣的湿敷可以尝试下。
-
-<h3 id="附件"><a href="#附件" class="headerlink" title="附件"></a>附件</h3><p><a href="https://share.weiyun.com/d1ed23e7750d6a37e3db268ac9ad84ef" target="_blank" rel="noopener">https://share.weiyun.com/d1ed23e7750d6a37e3db268ac9ad84ef</a></p>
-<h3 id="参考资料："><a href="#参考资料：" class="headerlink" title="参考资料："></a>参考资料：</h3><p>Saif El-Sherei的代码及文章：<br><a href="https://github.com/sensepost/gdi-palettes-exp" target="_blank" rel="noopener">https://github.com/sensepost/gdi-palettes-exp</a></p>
-]]></content>
-      <categories>
-        <category>漏洞利用</category>
-      </categories>
-      <tags>
-        <tag>内核原理</tag>
-        <tag>内核漏洞</tag>
       </tags>
   </entry>
   <entry>
@@ -1351,6 +1351,119 @@
       </tags>
   </entry>
   <entry>
+    <title>2020-06-05-Frida辅助分析OLLVM混淆的算法</title>
+    <url>/2020/06/05/2020-06-05-Frida%E8%BE%85%E5%8A%A9%E5%88%86%E6%9E%90OLLVM%E6%B7%B7%E6%B7%86%E7%9A%84%E7%AE%97%E6%B3%95/</url>
+    <content><![CDATA[<blockquote>
+<p>看雪的安卓培训网课例子动手做了一遍，记录下Frida辅助分析OLLVM混淆的相关方法，，（自己记录总结备忘用的，详细的讲解还是推荐去听看雪的课，附件先暂不提供下载）。</p>
+</blockquote>
+<a id="more"></a>
+<h2 id="L4：-Frida-辅助分析OLLVM字符串混淆"><a href="#L4：-Frida-辅助分析OLLVM字符串混淆" class="headerlink" title="L4： Frida 辅助分析OLLVM字符串混淆"></a>L4： Frida 辅助分析OLLVM字符串混淆</h2><p>hook_l4.js:</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function print_str(addr)</span><br><span class="line">&#123;</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var addr_str = base_libjni.add(addr);</span><br><span class="line">    console.log(&quot;str:&quot;,addr_str,ptr(addr_str).readCString());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native_001()</span><br><span class="line">&#123;</span><br><span class="line">    //v6 = off_33D60,</span><br><span class="line">    print_str(0x37070);</span><br><span class="line">    print_str(0x37080);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    print_str(0x37010);</span><br><span class="line">    print_str(0x37050);</span><br><span class="line">    print_str(0x370A8);</span><br><span class="line">    print_str(0x370C0);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native_002()</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    // *(_QWORD *)&amp;v6 = byte_3E1BA;</span><br><span class="line">    // *((_QWORD *)&amp;v6 + 1) = sub_6E4C;</span><br><span class="line">    // *(_QWORD *)&amp;xmmword_3E1E8 = &amp;dword_3E1B4;</span><br><span class="line">    // *(__int128 *)((char *)&amp;xmmword_3E1E8 + 8) = v6;</span><br><span class="line">    print_str(0x3E1B4);</span><br><span class="line">    print_str(0x3E1BA);</span><br><span class="line">&#125;</span><br><span class="line">function hook_libart()</span><br><span class="line">&#123;</span><br><span class="line">    //symbol   (no checkjni)</span><br><span class="line">    var module_libart = Process.findModuleByName(&quot;libart.so&quot;);</span><br><span class="line">    //or?const hooks = Module.load(&apos;libc.so&apos;);   var Symbol = hooks.enumerateSymbols();</span><br><span class="line">    var symbols = module_libart.enumerateSymbols();</span><br><span class="line">    </span><br><span class="line">    var addr_GetStringUTFChars = null;</span><br><span class="line">    var addr_FindClass = null;</span><br><span class="line">    var addr_GetStaticFieldID = null;</span><br><span class="line">    var addr_SetStaticIntField = null;</span><br><span class="line">    var addr_RegisterNatives = null;</span><br><span class="line"></span><br><span class="line">    for(var i = 0; i &lt; symbols.length;i++)</span><br><span class="line">    &#123;</span><br><span class="line">        if (symbols[i].name.indexOf(&quot;art&quot;) != -1) &#123;</span><br><span class="line">            if (symbols[i].name.indexOf(&quot;CheckJNI&quot;) == -1) &#123;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;GetStringUTFChars&quot;) != -1) &#123;</span><br><span class="line">                    addr_GetStringUTFChars = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_GetStringUTFChars);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;art3JNI9FindClass&quot;) != -1) &#123;</span><br><span class="line">                    addr_FindClass = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_FindClass);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;GetStaticFieldID&quot;) != -1) &#123;</span><br><span class="line">                    addr_GetStaticFieldID = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_GetStaticFieldID);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;SetStaticIntField&quot;) != -1) &#123;</span><br><span class="line">                    addr_SetStaticIntField = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_SetStaticIntField);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;RegisterNatives&quot;) != -1) &#123;</span><br><span class="line">                    addr_RegisterNatives = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_RegisterNatives);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //print str </span><br><span class="line">    </span><br><span class="line">    // //print so stack  :  FUZZY and ACCURATE</span><br><span class="line">    // if (addr_GetStringUTFChars) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_GetStringUTFChars,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             // console.log(&apos;addr_GetStringUTFChars onEnter called from:\n&apos; +</span><br><span class="line">    //             //     Thread.backtrace(this.context, Backtracer.FUZZY)</span><br><span class="line">    //             //         .map(DebugSymbol.fromAddress).join(&apos;\n&apos;) + &apos;\n&apos;);</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //             console.log(&quot;GetStringUTFChars:&quot;,ptr(retval).readCString())</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_FindClass) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_FindClass,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;FindClass Arg:&quot;, ptr(args[1]).readCString());</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_GetStaticFieldID) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_GetStaticFieldID,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;GetStaticFieldID Arg3:&quot;, ptr(args[2]).readCString(),&quot;Arg4:&quot;,ptr(args[3]).readCString());</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_SetStaticIntField) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_SetStaticIntField,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;SetStaticIntField Arg4:&quot;,args[3]);</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    // //hook findclass getstaticfiledid </span><br><span class="line">    if (addr_RegisterNatives) &#123;</span><br><span class="line">        Interceptor.attach(addr_RegisterNatives,&#123;</span><br><span class="line">            onEnter : function(args)&#123;</span><br><span class="line">                console.log(&quot;addr_RegisterNatives:\n&quot;,hexdump(args[2]));</span><br><span class="line">                console.log(&quot;addr_RegisterNatives name:&quot;,ptr(args[2]).readPointer().readCString());</span><br><span class="line">                console.log(&quot;addr_RegisterNatives sign:&quot;,ptr(args[2]).add(Process.pointerSize).readPointer().readCString());</span><br><span class="line">            &#125;,</span><br><span class="line">            onLeave : function(retval)&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line">function inline_hook()</span><br><span class="line">&#123;</span><br><span class="line">    //arm64稳定  arm32不稳定，x32可能会有2字节的thumb指令</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    console.log(&quot;base_libjni&quot;,base_libjni);</span><br><span class="line">    if (base_libjni != null) &#123;</span><br><span class="line">        var addr_hook = base_libjni.add(0x7320);</span><br><span class="line">        Interceptor.attach(addr_hook,&#123;</span><br><span class="line">            onEnter : function (args)&#123;</span><br><span class="line">                //w13 x13</span><br><span class="line">                console.log(&quot;xor:&quot;,this.context.x13);</span><br><span class="line">            &#125;,</span><br><span class="line">            onLeave : function(retval)&#123;</span><br><span class="line">                </span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_dlopen()</span><br><span class="line">&#123;</span><br><span class="line">    //android 6.0</span><br><span class="line">    var addr_dlopen = Module.findExportByName(null,&quot;dlopen&quot;);</span><br><span class="line">    Interceptor.attach(addr_dlopen,&#123;</span><br><span class="line">        onEnter : function (args)&#123;</span><br><span class="line">            this.flag = false;</span><br><span class="line">            var dlopen_name = ptr(args[0]).readCString();</span><br><span class="line">            console.log(&quot;android_dlopen_ext:&quot;,dlopen_name);</span><br><span class="line">            if(dlopen_name.indexOf(&quot;libhello-jni.so&quot;) &gt;= 0)&#123;</span><br><span class="line">                this.flag = true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave : function(retval)&#123;</span><br><span class="line">            if(this.flag)&#123;</span><br><span class="line">                inline_hook();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    // 高版本Android系统</span><br><span class="line">    var addr_android_dlopen_ext = Module.findExportByName(null,&quot;android_dlopen_ext&quot;);</span><br><span class="line">    Interceptor.attach(addr_android_dlopen_ext,&#123;</span><br><span class="line">        onEnter : function (args)&#123;</span><br><span class="line">            this.flag = false;</span><br><span class="line">            var dlopen_name = ptr(args[0]).readCString();</span><br><span class="line">            console.log(&quot;android_dlopen_ext:&quot;,dlopen_name);</span><br><span class="line">            if(dlopen_name.indexOf(&quot;libhello-jni.so&quot;) &gt;= 0)&#123;</span><br><span class="line">                this.flag = true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave : function(retval)&#123;</span><br><span class="line">            if(this.flag)&#123;</span><br><span class="line">                inline_hook();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_dlopen()</span><br><span class="line">    hook_libart()</span><br><span class="line">    //hook_native_001();</span><br><span class="line">    //hook_native_002();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
+<h2 id="L5-Frida-辅助分析OLLVM-控制流平坦化"><a href="#L5-Frida-辅助分析OLLVM-控制流平坦化" class="headerlink" title="L5: Frida 辅助分析OLLVM 控制流平坦化"></a>L5: Frida 辅助分析OLLVM 控制流平坦化</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function hook_java() &#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        var hello_jni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">        hello_jni.sign2.implementation = function(str,str2)&#123;</span><br><span class="line">            var ret = this.sign2(str,str2);</span><br><span class="line">            console.log(&quot;sign2 arg1:&quot;,str,&quot;arg2:&quot;,str2,&quot;ret:&quot;,ret);</span><br><span class="line">            return ret;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    //设置固定值注定调用</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                console.log(&quot;instance:&quot;,instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;))</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)</span><br><span class="line">            &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native() &#123;</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sub_13558 = base_libjni.add(0x13558);</span><br><span class="line">    //根据输入及返回结果交叉引用，首要分析sub函数。</span><br><span class="line">    // Interceptor.attach(sub_13558,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         console.log(&quot;sub_13558 OnEnter: arg1=&quot;,ptr(args[1]).readCString(),&quot;arg2=&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_13558 onLeave: arg0=&quot;,ptr(this.arg0).add(1).readCString());</span><br><span class="line">    //         console.log(&quot;sub_13558 onLeave: retval=&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    // var sub_12D70 = base_libjni.add(0x12D70);</span><br><span class="line">    // Interceptor.attach(sub_12D70,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.str1 = args[0];</span><br><span class="line">    //         this.str2 = args[1];</span><br><span class="line">    //         this.v51 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_12D70 arg0:&quot;,ptr(args[0]).add(1).readCString(),&quot;arg1:&quot;,ptr(args[1]).add(1).readCString(),&quot;\n&quot;);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_12D70 ret arg0:&quot;,ptr(this.str1).add(1).readCString(),&quot;arg1:&quot;,ptr(this.str2).add(1).readCString(),&quot;\n&quot;);</span><br><span class="line">    //         console.log(&quot;sub_12D70 ret arg2:\n&quot;,hexdump(ptr(this.v51).readPointer()));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_162b8 = base_libjni.add(0x162b8);</span><br><span class="line">    // Interceptor.attach(sub_162b8,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_162b8 arg0:\n&quot;,ptr(args[0]).readCString(),&quot;\narg1:\n&quot;,args[1],&quot;\n&quot;);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         //console.log(&quot;sub_162b8 ret arg0:&quot;,hexdump(this.arg0),&quot;arg1:&quot;,hexdump(this.arg1),&quot;\n&quot;);</span><br><span class="line">    //         console.log(&quot;sub_162b8 ret arg2:\n&quot;,ptr(this.arg2).readLong());      </span><br><span class="line">            </span><br><span class="line">    //         console.log(&quot;sub_162b8 retval\n&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_130F0 = base_libjni.add(0x130F0);</span><br><span class="line">    // Interceptor.attach(sub_130F0,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         console.log(&quot;sub_130F0 arg0:\n&quot;,hexdump(args[0],&#123; offset: 0, length: 64, header: true, ansi: true &#125;),&quot;\narg1:\n&quot;,ptr(args[1]).readCString(),&quot;\narg2:\n&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_130F0 ret arg0:\n&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_154D4 = base_libjni.add(0x154D4);</span><br><span class="line">    Interceptor.attach(sub_154D4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            this.arg2 = args[2];</span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg2=&quot;,args[2]);</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_154D4 OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_14844 = base_libjni.add(0x14844);</span><br><span class="line">    Interceptor.attach(sub_14844,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_14844 OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_14844 OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_14844 OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_14844 OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_158AC = base_libjni.add(0x158AC);</span><br><span class="line">    Interceptor.attach(sub_158AC,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_158AC OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">            console.log(&quot;sub_158AC OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_158AC OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;)); </span><br><span class="line">            console.log(&quot;sub_158AC OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_15F1C = base_libjni.add(0x15F1C);</span><br><span class="line">    // Interceptor.attach(sub_15F1C,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_15F1C OnEnter: arg0=&quot;,ptr(args[0]).readCString(),&quot;arg1=&quot;,args[1],&quot;arg2=&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_15F1C OnLeave: arg2=\n&quot;,hexdump(this.arg2,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main() &#123;</span><br><span class="line">    hook_java()</span><br><span class="line">    hook_native();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setImmediate(main);</span><br></pre></td></tr></table></figure>
+
+<h2 id="L6-1：-Frida-辅助分析OLLVM-指令替换"><a href="#L6-1：-Frida-辅助分析OLLVM-指令替换" class="headerlink" title="L6.1： Frida 辅助分析OLLVM 指令替换"></a>L6.1： Frida 辅助分析OLLVM 指令替换</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function hook_java()</span><br><span class="line">&#123;</span><br><span class="line">    // Java.perform(function()&#123;</span><br><span class="line">    //     var hellojni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">    //     hellojni.sign2.implementation = function(str1,str2)&#123;</span><br><span class="line">    //         var ret = this.sign2(str1,str2);</span><br><span class="line">    //         console.log(&quot;sign2: arg1=&quot;,str1,&quot; arg2=&quot;,str2,&quot; ret=&quot;,ret);</span><br><span class="line">    //         return ret;</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;)</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)</span><br><span class="line">            &#123;</span><br><span class="line">                </span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native()</span><br><span class="line">&#123;</span><br><span class="line">    var libjni_base = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sign2 = Module.findExportByName(&quot;libhello-jni.so&quot;,&quot;Java_com_example_hellojni_HelloJni_sign2&quot;);</span><br><span class="line">    console.log(&quot;base:&quot;,libjni_base,&quot;sign2:&quot;,sign2);</span><br><span class="line">    Interceptor.attach(sign2,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.str1 = args[2];</span><br><span class="line">            this.str2 = args[3];</span><br><span class="line">            //https://github.com/frida/frida-java-bridge/search?q=GetStringUTFChars&amp;unscoped_q=GetStringUTFChars</span><br><span class="line">            console.log(&quot;Native: str1=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(this.str1)).readCString(),&quot; str2=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(this.str2)).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;Native: retval=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(retval)).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1DFB4 = libjni_base.add(0x1DFB4);</span><br><span class="line">    // Interceptor.attach(sub_1DFB4,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         //ida 里面可能识别的不对，需要分析下参数传递是否正确</span><br><span class="line">    //         //void __usercall sub_1DFB4(_QWORD *a1@&lt;X0&gt;, _QWORD *a2@&lt;X1&gt;)</span><br><span class="line">    //         console.log(&quot;sub_1DFB4 onEnter: str1=&quot;,ptr(this.arg0).add(1).readCString(),&quot; str2=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_1DFB4 onLeave: retval=&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1E298 = libjni_base.add(0x1E298);</span><br><span class="line">    // Interceptor.attach(sub_1E298,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_1E298 onEnter: str1=&quot;,ptr(this.arg0).add(1).readCString(),&quot; str2=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_1E298 onLeave: retval=&quot;,ptr(retval).add(1).readCString());</span><br><span class="line">    //         console.log(&quot;sub_1E298 onLeave: arg2=&quot;,hexdump(ptr(this.arg2).readPointer()));</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1AB4C = libjni_base.add(0x1AB4C);</span><br><span class="line">    Interceptor.attach(sub_1AB4C,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            this.arg2 = args[2];</span><br><span class="line">            console.log(&quot;sub_1AB4C onEnter: arg0=&quot;,ptr(this.arg0).readCString(),&quot; arg1=&quot;,this.arg1);</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_1AB4C onLeave: arg2=&quot;,hexdump(this.arg2,&#123; offset: 0, length: 16, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_171C4 = libjni_base.add(0x171C4);</span><br><span class="line">    Interceptor.attach(sub_171C4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_171C4 onEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_171C4 onEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_171C4 onLeave: retval=&quot;,hexdump(retval,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    var sub_18490 = libjni_base.add(0x18490);</span><br><span class="line">    Interceptor.attach(sub_18490,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_18490 onEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_18490 onEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123; </span><br><span class="line">            console.log(&quot;sub_18490 onLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_18490 onLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_java();</span><br><span class="line">    hook_native();</span><br><span class="line">&#125;</span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
+<h2 id="L6-2：-Frida-辅助分析OLLVM-控制流混淆"><a href="#L6-2：-Frida-辅助分析OLLVM-控制流混淆" class="headerlink" title="L6.2： Frida 辅助分析OLLVM 控制流混淆"></a>L6.2： Frida 辅助分析OLLVM 控制流混淆</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function hook_java()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        var hello_jni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">        hello_jni.sign2.implementation = function(str1,str2)&#123;</span><br><span class="line">            var ret = this.sign2(str1,str2);</span><br><span class="line">            console.log(&quot;sign2: arg1=&quot;,str1,&quot;arg2=&quot;,str2,&quot;ret=&quot;,ret);</span><br><span class="line">            return ret;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;)</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native()</span><br><span class="line">&#123;</span><br><span class="line">    var libjni_base = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sign2 = Module.findExportByName(&quot;libhello-jni.so&quot;,&quot;Java_com_example_hellojni_HelloJni_sign2&quot;);</span><br><span class="line">    console.log(&quot;base:&quot;,libjni_base,&quot;sign2:&quot;,sign2);</span><br><span class="line"></span><br><span class="line">    var sub_12B44 = libjni_base.add(0x12B44);</span><br><span class="line">    Interceptor.attach(sub_12B44,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            console.log(&quot;sub_12B44 onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_12B44 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_12B44 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1391C = libjni_base.add(0x1391C);</span><br><span class="line">    Interceptor.attach(sub_1391C,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            //console.log(&quot;sub_1391C onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_1391C onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_1391C onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_18D30 = libjni_base.add(0x18D30);</span><br><span class="line">    Interceptor.attach(sub_18D30,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.arg3 = args[2];</span><br><span class="line">            console.log(&quot;sub_18D30 onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_18D30 onLeave: retval=&quot;,hexdump(retval));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_18AB0 = libjni_base.add(0x18AB0);</span><br><span class="line">    Interceptor.attach(sub_18AB0,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.x8 = this.context.x8;</span><br><span class="line">            //方法的返回值一般都在 x0 上；如果方法返回值是一个较大的数据结构时，结果会存在 x8 执行的地址上。</span><br><span class="line">            //如果打印X0没有结果，可以看汇编查看是否是X8存储的结果（jstring结构体+0x10指针）</span><br><span class="line">            console.log(&quot;sub_18AB0 onEnter: arg1=&quot;,ptr(this.arg1).add(1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).add(1).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            //console.log(&quot;sub_18AB0 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            console.log(&quot;sub_18AB0 onLeave: retx8 =&quot;,hexdump(ptr(this.x8).add(Process.pointerSize*2).readPointer()));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_12CF4 = libjni_base.add(0x12CF4);</span><br><span class="line">    Interceptor.attach(sub_12CF4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            console.log(&quot;sub_12CF4 onEnter: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_12CF4 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_12CF4 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">    </span><br><span class="line">    var sub_16900 = libjni_base.add(0x16900);</span><br><span class="line">    Interceptor.attach(sub_16900,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.arg3 = args[2];</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg1=&quot;,ptr(this.arg1).readCString());</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg2=&quot;,this.arg2);</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg3=&quot;,ptr(this.arg3).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg1=&quot;,ptr(this.arg1).readCString());</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg2=&quot;,this.arg2);</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg3=&quot;,hexdump(this.arg3));</span><br><span class="line">            //console.log(&quot;sub_16900 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_java()</span><br><span class="line">    hook_native()</span><br><span class="line">&#125;</span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
+<h2 id="L7：Frida-辅助分析非标准算法"><a href="#L7：Frida-辅助分析非标准算法" class="headerlink" title="L7：Frida 辅助分析非标准算法"></a>L7：Frida 辅助分析非标准算法</h2><h2 id="L8：IDA-Trace-辅助分析非标准算法"><a href="#L8：IDA-Trace-辅助分析非标准算法" class="headerlink" title="L8：IDA Trace 辅助分析非标准算法"></a>L8：IDA Trace 辅助分析非标准算法</h2><h2 id="L9：IDA-Trace辅助分析OOLVM混淆的非标准算法"><a href="#L9：IDA-Trace辅助分析OOLVM混淆的非标准算法" class="headerlink" title="L9：IDA Trace辅助分析OOLVM混淆的非标准算法"></a>L9：IDA Trace辅助分析OOLVM混淆的非标准算法</h2><p>后面三课的内容涉及的Frida用法不多，而且之前也都已经涉及到，后面有空了连同上一篇补充下细节。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><ol>
+<li>个人感觉Frida辅助分析OLLVM主要在于运行时HOOK获取到解密后的字符串，以及通过交叉引用获取到程序的参数。</li>
+</ol>
+<p>附件下载：<a href="samples.zip" target="_blank">链接</a></p>
+]]></content>
+      <categories>
+        <category>移动终端</category>
+      </categories>
+      <tags>
+        <tag>Frida</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>2021-03-01-使用Unicorn模拟运行破解简单的IOS-IPA-Crackme</title>
+    <url>/2021/03/01/2021-03-01-%E4%BD%BF%E7%94%A8Unicorn%E6%A8%A1%E6%8B%9F%E8%BF%90%E8%A1%8C%E7%A0%B4%E8%A7%A3%E7%AE%80%E5%8D%95%E7%9A%84IOS-IPA-Crackme/</url>
+    <content><![CDATA[<blockquote>
+<p>&ensp;&ensp;&ensp;&ensp;IPA是Apple程序应用文件iPhoneApplication的缩写。苹果手机上ios系统上安装开发的app，首先要将项目打包成ipa文件。利用IDA静态分析以及Unicorn的模拟执行功能，可以在没有ios调试环境的情况下对ios app开展静态分析以及模拟动态执行工作。
+</blockquote>
+<a id="more"></a>
+<h2 id="【步骤】"><a href="#【步骤】" class="headerlink" title="【步骤】"></a>【步骤】</h2><p>UnCrackable_Level1.ipa 为需要分析的目标程序，位置为测试虚拟机环境中的桌面文件夹，同目录下的wp文件夹中存放实验用的wp脚本。</p>
+<ol>
+<li>首先根据ipa包的文件格式获取其主程序文件，选择使用Winrar对ipa包进行解压，将其解压到默认桌面文件夹。</li>
+</ol>
+<div align="center">
+
+<p><img src="1.png" alt="1"></p>
+</div>
+得到Payload\UnCrackable Level 1.app目录中的主程序文件“UnCrackable Level 1”。
+
+<ol start="2">
+<li>使用桌面中的IDA程序打开“UnCrackable Level 1”，打开方式选择Math-O(arm64)方式。<div align="center">
+
+</li>
+</ol>
+<p><img src="2.png" alt="2"></p>
+</div>
+
+<ol start="3">
+<li><p>根据IDA识别的按钮点击事件的处理流程，可以定位到Flag字符串的处理函数。</p>
+<div align="center">
+
+<p><img src="3.png" alt="3"></p>
+</div>
+也可以通过字符串搜索方式定位到Flag的验证处理流程：
+<div align="center">
+
+<p><img src="4.png" alt="4"></p>
+</div>
+利用引用地址同样定位到buttonclick处理函数代码：
+<div align="center">
+
+<p><img src="5.png" alt="5"></p>
+</div>
+</li>
+<li><p>下面继续分析该函数的处理流程，使用F5获取伪代码显示。</p>
+<div align="center">
+
+<p><img src="6.png" alt="6">    </p>
+</div>
+分析处理流程为输入框中输入的Flag字符串与thelabel标签标识的字符串相比较，比较相等成功之后则弹出Flag验证正确的提示。
+</li>
+<li><p>实际上程序运行后是无法看到thelabel标签标识的字符串的，需要跟进程序中视图加载时对该标签的处理过程查看到标签实际的字符串值。使用IDA查看viewDidLoad函数的代码：</p>
+<div align="center">
+
+<p><img src="7.png" alt="7"></p>
+</div>
+可以看到thelabel标签的字符串值实际上是由sub_1000080D4函数处理后返回.同时可以看到程序中设置该标签为隐藏属性.
+</li>
+<li><p>跟进分析sub_1000080D4函数的实现过程。</p>
+<div align="center">
+
+<p><img src="8.png" alt="8"></p>
+</div>
+该函数功能为对字符串缓冲区逐字节进行运算赋值,最终返回运算完之后的字符串.
+</li>
+<li><p>因为直接通过静态分析得到最终返回的字符串值较为复杂,可以考虑使用Unicorn模拟执行的方式对sub_1000080D4函数进行仿真,并获取其最终返回的字符串。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># encoding=utf8</span><br><span class="line">from unicorn import *</span><br><span class="line">from unicorn.arm64_const import *</span><br><span class="line"></span><br><span class="line">ImageBase = 0x0</span><br><span class="line">ImageSize = 0x100000</span><br><span class="line">StackBase = 0x200000</span><br><span class="line">StackSize = 0x100000</span><br><span class="line">StackTop = StackBase + StackSize - 0x10</span><br><span class="line"></span><br><span class="line">try:</span><br><span class="line">    mu = Uc(UC_ARCH_ARM64,UC_MODE_ARM)</span><br><span class="line">    mu.mem_map(ImageBase,ImageSize)</span><br><span class="line">    bin = open(&quot;UnCrackable Level 1&quot;,&quot;rb&quot;).read()</span><br><span class="line">    mu.mem_write(ImageBase,bin)</span><br><span class="line"></span><br><span class="line">    mu.mem_map(StackBase,StackSize)</span><br><span class="line">    mu.reg_write(UC_ARM64_REG_SP,StackTop)</span><br><span class="line"></span><br><span class="line">    target_begin = ImageBase + 0x240D4</span><br><span class="line">    target_end = ImageBase + 0x24154</span><br><span class="line">    mu.emu_start(target_begin,target_end)</span><br><span class="line">    print(&quot;Done...&quot;)</span><br><span class="line"></span><br><span class="line">    x0 = mu.reg_read(UC_ARM64_REG_X0)</span><br><span class="line">    result = mu.mem_read(x0,16)</span><br><span class="line">    print(&apos;Flag:&apos; + result.decode(&apos;utf-8&apos;))</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">except UcError as e:</span><br><span class="line">    print(&quot;ERROR:%s&quot; %e)</span><br></pre></td></tr></table></figure>
+<p>该段代码的主要功能为利用Unicorn申请代码缓存及栈空间,对指定的sub_1000080D4函数代码起始位置(0x240D4)和结束位置(0x24154)进行仿真,最终取回返回值也即是寄存器X0指向的内存空间.注意因为镜像申请的空间为自定义的基地址0,代码实际所在的位置需要进行确认,</p>
+<div align="center">
+
+<p><img src="9.png" alt="9"></p>
+</div></li>
+<li><p>将”UnCrackable Level 1”文件拷贝到wp脚本所在目录,并执行wp脚本获取返回字符串值,即为Flag字符串.</p>
+<div align="center">
+
+<p><img src="10.png" alt="10"></p>
+</div>
+
+</li>
+</ol>
+<h2 id="【总结】"><a href="#【总结】" class="headerlink" title="【总结】"></a>【总结】</h2><p>ios ipa逆向基础知识以及Unicorn框架的使用方法。</p>
+]]></content>
+      <categories>
+        <category>移动终端</category>
+      </categories>
+      <tags>
+        <tag>ios</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>2022-06-06-hutrace工具系列第1篇之基本功能介绍</title>
     <url>/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/</url>
     <content><![CDATA[<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/1.png" alt=""></p>
@@ -1493,119 +1606,6 @@
         <tag>调试器</tag>
         <tag>dynamorio</tag>
         <tag>hutrace</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2020-06-05-Frida辅助分析OLLVM混淆的算法</title>
-    <url>/2020/06/05/2020-06-05-Frida%E8%BE%85%E5%8A%A9%E5%88%86%E6%9E%90OLLVM%E6%B7%B7%E6%B7%86%E7%9A%84%E7%AE%97%E6%B3%95/</url>
-    <content><![CDATA[<blockquote>
-<p>看雪的安卓培训网课例子动手做了一遍，记录下Frida辅助分析OLLVM混淆的相关方法，，（自己记录总结备忘用的，详细的讲解还是推荐去听看雪的课，附件先暂不提供下载）。</p>
-</blockquote>
-<a id="more"></a>
-<h2 id="L4：-Frida-辅助分析OLLVM字符串混淆"><a href="#L4：-Frida-辅助分析OLLVM字符串混淆" class="headerlink" title="L4： Frida 辅助分析OLLVM字符串混淆"></a>L4： Frida 辅助分析OLLVM字符串混淆</h2><p>hook_l4.js:</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function print_str(addr)</span><br><span class="line">&#123;</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var addr_str = base_libjni.add(addr);</span><br><span class="line">    console.log(&quot;str:&quot;,addr_str,ptr(addr_str).readCString());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native_001()</span><br><span class="line">&#123;</span><br><span class="line">    //v6 = off_33D60,</span><br><span class="line">    print_str(0x37070);</span><br><span class="line">    print_str(0x37080);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    print_str(0x37010);</span><br><span class="line">    print_str(0x37050);</span><br><span class="line">    print_str(0x370A8);</span><br><span class="line">    print_str(0x370C0);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native_002()</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    // *(_QWORD *)&amp;v6 = byte_3E1BA;</span><br><span class="line">    // *((_QWORD *)&amp;v6 + 1) = sub_6E4C;</span><br><span class="line">    // *(_QWORD *)&amp;xmmword_3E1E8 = &amp;dword_3E1B4;</span><br><span class="line">    // *(__int128 *)((char *)&amp;xmmword_3E1E8 + 8) = v6;</span><br><span class="line">    print_str(0x3E1B4);</span><br><span class="line">    print_str(0x3E1BA);</span><br><span class="line">&#125;</span><br><span class="line">function hook_libart()</span><br><span class="line">&#123;</span><br><span class="line">    //symbol   (no checkjni)</span><br><span class="line">    var module_libart = Process.findModuleByName(&quot;libart.so&quot;);</span><br><span class="line">    //or?const hooks = Module.load(&apos;libc.so&apos;);   var Symbol = hooks.enumerateSymbols();</span><br><span class="line">    var symbols = module_libart.enumerateSymbols();</span><br><span class="line">    </span><br><span class="line">    var addr_GetStringUTFChars = null;</span><br><span class="line">    var addr_FindClass = null;</span><br><span class="line">    var addr_GetStaticFieldID = null;</span><br><span class="line">    var addr_SetStaticIntField = null;</span><br><span class="line">    var addr_RegisterNatives = null;</span><br><span class="line"></span><br><span class="line">    for(var i = 0; i &lt; symbols.length;i++)</span><br><span class="line">    &#123;</span><br><span class="line">        if (symbols[i].name.indexOf(&quot;art&quot;) != -1) &#123;</span><br><span class="line">            if (symbols[i].name.indexOf(&quot;CheckJNI&quot;) == -1) &#123;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;GetStringUTFChars&quot;) != -1) &#123;</span><br><span class="line">                    addr_GetStringUTFChars = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_GetStringUTFChars);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;art3JNI9FindClass&quot;) != -1) &#123;</span><br><span class="line">                    addr_FindClass = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_FindClass);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;GetStaticFieldID&quot;) != -1) &#123;</span><br><span class="line">                    addr_GetStaticFieldID = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_GetStaticFieldID);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;SetStaticIntField&quot;) != -1) &#123;</span><br><span class="line">                    addr_SetStaticIntField = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_SetStaticIntField);</span><br><span class="line">                &#125;</span><br><span class="line">                if (symbols[i].name.indexOf(&quot;RegisterNatives&quot;) != -1) &#123;</span><br><span class="line">                    addr_RegisterNatives = symbols[i].address;</span><br><span class="line">                    console.log(symbols[i].name,addr_RegisterNatives);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //print str </span><br><span class="line">    </span><br><span class="line">    // //print so stack  :  FUZZY and ACCURATE</span><br><span class="line">    // if (addr_GetStringUTFChars) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_GetStringUTFChars,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             // console.log(&apos;addr_GetStringUTFChars onEnter called from:\n&apos; +</span><br><span class="line">    //             //     Thread.backtrace(this.context, Backtracer.FUZZY)</span><br><span class="line">    //             //         .map(DebugSymbol.fromAddress).join(&apos;\n&apos;) + &apos;\n&apos;);</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //             console.log(&quot;GetStringUTFChars:&quot;,ptr(retval).readCString())</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_FindClass) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_FindClass,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;FindClass Arg:&quot;, ptr(args[1]).readCString());</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_GetStaticFieldID) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_GetStaticFieldID,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;GetStaticFieldID Arg3:&quot;, ptr(args[2]).readCString(),&quot;Arg4:&quot;,ptr(args[3]).readCString());</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    </span><br><span class="line">    // if (addr_SetStaticIntField) &#123;</span><br><span class="line">    //     Interceptor.attach(addr_SetStaticIntField,&#123;</span><br><span class="line">    //         onEnter : function(args)&#123;</span><br><span class="line">    //             console.log(&quot;SetStaticIntField Arg4:&quot;,args[3]);</span><br><span class="line">    //         &#125;,</span><br><span class="line">    //         onLeave : function(retval)&#123;</span><br><span class="line">    //         &#125;</span><br><span class="line">    //     &#125;);</span><br><span class="line">    // &#125;</span><br><span class="line">    // //hook findclass getstaticfiledid </span><br><span class="line">    if (addr_RegisterNatives) &#123;</span><br><span class="line">        Interceptor.attach(addr_RegisterNatives,&#123;</span><br><span class="line">            onEnter : function(args)&#123;</span><br><span class="line">                console.log(&quot;addr_RegisterNatives:\n&quot;,hexdump(args[2]));</span><br><span class="line">                console.log(&quot;addr_RegisterNatives name:&quot;,ptr(args[2]).readPointer().readCString());</span><br><span class="line">                console.log(&quot;addr_RegisterNatives sign:&quot;,ptr(args[2]).add(Process.pointerSize).readPointer().readCString());</span><br><span class="line">            &#125;,</span><br><span class="line">            onLeave : function(retval)&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line">function inline_hook()</span><br><span class="line">&#123;</span><br><span class="line">    //arm64稳定  arm32不稳定，x32可能会有2字节的thumb指令</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    console.log(&quot;base_libjni&quot;,base_libjni);</span><br><span class="line">    if (base_libjni != null) &#123;</span><br><span class="line">        var addr_hook = base_libjni.add(0x7320);</span><br><span class="line">        Interceptor.attach(addr_hook,&#123;</span><br><span class="line">            onEnter : function (args)&#123;</span><br><span class="line">                //w13 x13</span><br><span class="line">                console.log(&quot;xor:&quot;,this.context.x13);</span><br><span class="line">            &#125;,</span><br><span class="line">            onLeave : function(retval)&#123;</span><br><span class="line">                </span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_dlopen()</span><br><span class="line">&#123;</span><br><span class="line">    //android 6.0</span><br><span class="line">    var addr_dlopen = Module.findExportByName(null,&quot;dlopen&quot;);</span><br><span class="line">    Interceptor.attach(addr_dlopen,&#123;</span><br><span class="line">        onEnter : function (args)&#123;</span><br><span class="line">            this.flag = false;</span><br><span class="line">            var dlopen_name = ptr(args[0]).readCString();</span><br><span class="line">            console.log(&quot;android_dlopen_ext:&quot;,dlopen_name);</span><br><span class="line">            if(dlopen_name.indexOf(&quot;libhello-jni.so&quot;) &gt;= 0)&#123;</span><br><span class="line">                this.flag = true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave : function(retval)&#123;</span><br><span class="line">            if(this.flag)&#123;</span><br><span class="line">                inline_hook();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    // 高版本Android系统</span><br><span class="line">    var addr_android_dlopen_ext = Module.findExportByName(null,&quot;android_dlopen_ext&quot;);</span><br><span class="line">    Interceptor.attach(addr_android_dlopen_ext,&#123;</span><br><span class="line">        onEnter : function (args)&#123;</span><br><span class="line">            this.flag = false;</span><br><span class="line">            var dlopen_name = ptr(args[0]).readCString();</span><br><span class="line">            console.log(&quot;android_dlopen_ext:&quot;,dlopen_name);</span><br><span class="line">            if(dlopen_name.indexOf(&quot;libhello-jni.so&quot;) &gt;= 0)&#123;</span><br><span class="line">                this.flag = true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave : function(retval)&#123;</span><br><span class="line">            if(this.flag)&#123;</span><br><span class="line">                inline_hook();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_dlopen()</span><br><span class="line">    hook_libart()</span><br><span class="line">    //hook_native_001();</span><br><span class="line">    //hook_native_002();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
-<h2 id="L5-Frida-辅助分析OLLVM-控制流平坦化"><a href="#L5-Frida-辅助分析OLLVM-控制流平坦化" class="headerlink" title="L5: Frida 辅助分析OLLVM 控制流平坦化"></a>L5: Frida 辅助分析OLLVM 控制流平坦化</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function hook_java() &#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        var hello_jni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">        hello_jni.sign2.implementation = function(str,str2)&#123;</span><br><span class="line">            var ret = this.sign2(str,str2);</span><br><span class="line">            console.log(&quot;sign2 arg1:&quot;,str,&quot;arg2:&quot;,str2,&quot;ret:&quot;,ret);</span><br><span class="line">            return ret;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    //设置固定值注定调用</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                console.log(&quot;instance:&quot;,instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;))</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)</span><br><span class="line">            &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native() &#123;</span><br><span class="line">    var base_libjni = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sub_13558 = base_libjni.add(0x13558);</span><br><span class="line">    //根据输入及返回结果交叉引用，首要分析sub函数。</span><br><span class="line">    // Interceptor.attach(sub_13558,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         console.log(&quot;sub_13558 OnEnter: arg1=&quot;,ptr(args[1]).readCString(),&quot;arg2=&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_13558 onLeave: arg0=&quot;,ptr(this.arg0).add(1).readCString());</span><br><span class="line">    //         console.log(&quot;sub_13558 onLeave: retval=&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    // var sub_12D70 = base_libjni.add(0x12D70);</span><br><span class="line">    // Interceptor.attach(sub_12D70,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.str1 = args[0];</span><br><span class="line">    //         this.str2 = args[1];</span><br><span class="line">    //         this.v51 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_12D70 arg0:&quot;,ptr(args[0]).add(1).readCString(),&quot;arg1:&quot;,ptr(args[1]).add(1).readCString(),&quot;\n&quot;);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_12D70 ret arg0:&quot;,ptr(this.str1).add(1).readCString(),&quot;arg1:&quot;,ptr(this.str2).add(1).readCString(),&quot;\n&quot;);</span><br><span class="line">    //         console.log(&quot;sub_12D70 ret arg2:\n&quot;,hexdump(ptr(this.v51).readPointer()));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_162b8 = base_libjni.add(0x162b8);</span><br><span class="line">    // Interceptor.attach(sub_162b8,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_162b8 arg0:\n&quot;,ptr(args[0]).readCString(),&quot;\narg1:\n&quot;,args[1],&quot;\n&quot;);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         //console.log(&quot;sub_162b8 ret arg0:&quot;,hexdump(this.arg0),&quot;arg1:&quot;,hexdump(this.arg1),&quot;\n&quot;);</span><br><span class="line">    //         console.log(&quot;sub_162b8 ret arg2:\n&quot;,ptr(this.arg2).readLong());      </span><br><span class="line">            </span><br><span class="line">    //         console.log(&quot;sub_162b8 retval\n&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_130F0 = base_libjni.add(0x130F0);</span><br><span class="line">    // Interceptor.attach(sub_130F0,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         console.log(&quot;sub_130F0 arg0:\n&quot;,hexdump(args[0],&#123; offset: 0, length: 64, header: true, ansi: true &#125;),&quot;\narg1:\n&quot;,ptr(args[1]).readCString(),&quot;\narg2:\n&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_130F0 ret arg0:\n&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_154D4 = base_libjni.add(0x154D4);</span><br><span class="line">    Interceptor.attach(sub_154D4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            this.arg2 = args[2];</span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnEnter: arg2=&quot;,args[2]);</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_154D4 OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_154D4 OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_14844 = base_libjni.add(0x14844);</span><br><span class="line">    Interceptor.attach(sub_14844,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_14844 OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_14844 OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_14844 OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">            console.log(&quot;sub_14844 OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));   </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_158AC = base_libjni.add(0x158AC);</span><br><span class="line">    Interceptor.attach(sub_158AC,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_158AC OnEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">            console.log(&quot;sub_158AC OnEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_158AC OnLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 64, header: true, ansi: true &#125;)); </span><br><span class="line">            console.log(&quot;sub_158AC OnLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_15F1C = base_libjni.add(0x15F1C);</span><br><span class="line">    // Interceptor.attach(sub_15F1C,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_15F1C OnEnter: arg0=&quot;,ptr(args[0]).readCString(),&quot;arg1=&quot;,args[1],&quot;arg2=&quot;,args[2]);</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_15F1C OnLeave: arg2=\n&quot;,hexdump(this.arg2,&#123; offset: 0, length: 64, header: true, ansi: true &#125;));      </span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main() &#123;</span><br><span class="line">    hook_java()</span><br><span class="line">    hook_native();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setImmediate(main);</span><br></pre></td></tr></table></figure>
-
-<h2 id="L6-1：-Frida-辅助分析OLLVM-指令替换"><a href="#L6-1：-Frida-辅助分析OLLVM-指令替换" class="headerlink" title="L6.1： Frida 辅助分析OLLVM 指令替换"></a>L6.1： Frida 辅助分析OLLVM 指令替换</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function hook_java()</span><br><span class="line">&#123;</span><br><span class="line">    // Java.perform(function()&#123;</span><br><span class="line">    //     var hellojni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">    //     hellojni.sign2.implementation = function(str1,str2)&#123;</span><br><span class="line">    //         var ret = this.sign2(str1,str2);</span><br><span class="line">    //         console.log(&quot;sign2: arg1=&quot;,str1,&quot; arg2=&quot;,str2,&quot; ret=&quot;,ret);</span><br><span class="line">    //         return ret;</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;)</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)</span><br><span class="line">            &#123;</span><br><span class="line">                </span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native()</span><br><span class="line">&#123;</span><br><span class="line">    var libjni_base = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sign2 = Module.findExportByName(&quot;libhello-jni.so&quot;,&quot;Java_com_example_hellojni_HelloJni_sign2&quot;);</span><br><span class="line">    console.log(&quot;base:&quot;,libjni_base,&quot;sign2:&quot;,sign2);</span><br><span class="line">    Interceptor.attach(sign2,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.str1 = args[2];</span><br><span class="line">            this.str2 = args[3];</span><br><span class="line">            //https://github.com/frida/frida-java-bridge/search?q=GetStringUTFChars&amp;unscoped_q=GetStringUTFChars</span><br><span class="line">            console.log(&quot;Native: str1=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(this.str1)).readCString(),&quot; str2=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(this.str2)).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;Native: retval=&quot;,ptr(Java.vm.tryGetEnv().getStringUtfChars(retval)).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1DFB4 = libjni_base.add(0x1DFB4);</span><br><span class="line">    // Interceptor.attach(sub_1DFB4,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         //ida 里面可能识别的不对，需要分析下参数传递是否正确</span><br><span class="line">    //         //void __usercall sub_1DFB4(_QWORD *a1@&lt;X0&gt;, _QWORD *a2@&lt;X1&gt;)</span><br><span class="line">    //         console.log(&quot;sub_1DFB4 onEnter: str1=&quot;,ptr(this.arg0).add(1).readCString(),&quot; str2=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_1DFB4 onLeave: retval=&quot;,ptr(retval).readCString());</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1E298 = libjni_base.add(0x1E298);</span><br><span class="line">    // Interceptor.attach(sub_1E298,&#123;</span><br><span class="line">    //     onEnter:function(args)&#123;</span><br><span class="line">    //         this.arg0 = args[0];</span><br><span class="line">    //         this.arg1 = args[1];</span><br><span class="line">    //         this.arg2 = args[2];</span><br><span class="line">    //         console.log(&quot;sub_1E298 onEnter: str1=&quot;,ptr(this.arg0).add(1).readCString(),&quot; str2=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">    //     &#125;,</span><br><span class="line">    //     onLeave:function(retval)&#123;</span><br><span class="line">    //         console.log(&quot;sub_1E298 onLeave: retval=&quot;,ptr(retval).add(1).readCString());</span><br><span class="line">    //         console.log(&quot;sub_1E298 onLeave: arg2=&quot;,hexdump(ptr(this.arg2).readPointer()));</span><br><span class="line">    //     &#125;</span><br><span class="line">    // &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1AB4C = libjni_base.add(0x1AB4C);</span><br><span class="line">    Interceptor.attach(sub_1AB4C,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            this.arg2 = args[2];</span><br><span class="line">            console.log(&quot;sub_1AB4C onEnter: arg0=&quot;,ptr(this.arg0).readCString(),&quot; arg1=&quot;,this.arg1);</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_1AB4C onLeave: arg2=&quot;,hexdump(this.arg2,&#123; offset: 0, length: 16, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_171C4 = libjni_base.add(0x171C4);</span><br><span class="line">    Interceptor.attach(sub_171C4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_171C4 onEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_171C4 onEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_171C4 onLeave: retval=&quot;,hexdump(retval,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    var sub_18490 = libjni_base.add(0x18490);</span><br><span class="line">    Interceptor.attach(sub_18490,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg0 = args[0];</span><br><span class="line">            this.arg1 = args[1];</span><br><span class="line">            console.log(&quot;sub_18490 onEnter: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_18490 onEnter: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123; </span><br><span class="line">            console.log(&quot;sub_18490 onLeave: arg0=&quot;,hexdump(this.arg0,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">            console.log(&quot;sub_18490 onLeave: arg1=&quot;,hexdump(this.arg1,&#123; offset: 0, length: 80, header: true, ansi: true &#125;));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_java();</span><br><span class="line">    hook_native();</span><br><span class="line">&#125;</span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
-<h2 id="L6-2：-Frida-辅助分析OLLVM-控制流混淆"><a href="#L6-2：-Frida-辅助分析OLLVM-控制流混淆" class="headerlink" title="L6.2： Frida 辅助分析OLLVM 控制流混淆"></a>L6.2： Frida 辅助分析OLLVM 控制流混淆</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">function hook_java()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        var hello_jni = Java.use(&quot;com.example.hellojni.HelloJni&quot;);</span><br><span class="line">        hello_jni.sign2.implementation = function(str1,str2)&#123;</span><br><span class="line">            var ret = this.sign2(str1,str2);</span><br><span class="line">            console.log(&quot;sign2: arg1=&quot;,str1,&quot;arg2=&quot;,str2,&quot;ret=&quot;,ret);</span><br><span class="line">            return ret;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function call_sign2()</span><br><span class="line">&#123;</span><br><span class="line">    Java.perform(function()&#123;</span><br><span class="line">        Java.choose(&quot;com.example.hellojni.HelloJni&quot;,&#123;</span><br><span class="line">            onMatch:function(instance)&#123;</span><br><span class="line">                instance.sign2(&quot;0123456789&quot;,&quot;abcdefgh&quot;)</span><br><span class="line">            &#125;,</span><br><span class="line">            onComplete:function(ret)&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function hook_native()</span><br><span class="line">&#123;</span><br><span class="line">    var libjni_base = Module.findBaseAddress(&quot;libhello-jni.so&quot;);</span><br><span class="line">    var sign2 = Module.findExportByName(&quot;libhello-jni.so&quot;,&quot;Java_com_example_hellojni_HelloJni_sign2&quot;);</span><br><span class="line">    console.log(&quot;base:&quot;,libjni_base,&quot;sign2:&quot;,sign2);</span><br><span class="line"></span><br><span class="line">    var sub_12B44 = libjni_base.add(0x12B44);</span><br><span class="line">    Interceptor.attach(sub_12B44,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            console.log(&quot;sub_12B44 onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_12B44 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_12B44 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_1391C = libjni_base.add(0x1391C);</span><br><span class="line">    Interceptor.attach(sub_1391C,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            //console.log(&quot;sub_1391C onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_1391C onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_1391C onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_18D30 = libjni_base.add(0x18D30);</span><br><span class="line">    Interceptor.attach(sub_18D30,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.arg3 = args[2];</span><br><span class="line">            console.log(&quot;sub_18D30 onEnter: arg1=&quot;,ptr(this.arg1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_18D30 onLeave: retval=&quot;,hexdump(retval));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_18AB0 = libjni_base.add(0x18AB0);</span><br><span class="line">    Interceptor.attach(sub_18AB0,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.x8 = this.context.x8;</span><br><span class="line">            //方法的返回值一般都在 x0 上；如果方法返回值是一个较大的数据结构时，结果会存在 x8 执行的地址上。</span><br><span class="line">            //如果打印X0没有结果，可以看汇编查看是否是X8存储的结果（jstring结构体+0x10指针）</span><br><span class="line">            console.log(&quot;sub_18AB0 onEnter: arg1=&quot;,ptr(this.arg1).add(1).readCString(),&quot;arg2=&quot;,ptr(this.arg2).add(1).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            //console.log(&quot;sub_18AB0 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            console.log(&quot;sub_18AB0 onLeave: retx8 =&quot;,hexdump(ptr(this.x8).add(Process.pointerSize*2).readPointer()));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    var sub_12CF4 = libjni_base.add(0x12CF4);</span><br><span class="line">    Interceptor.attach(sub_12CF4,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            console.log(&quot;sub_12CF4 onEnter: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_12CF4 onLeave: arg1=&quot;,ptr(this.arg1).add(1).readCString());</span><br><span class="line">            //console.log(&quot;sub_12CF4 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">    </span><br><span class="line">    var sub_16900 = libjni_base.add(0x16900);</span><br><span class="line">    Interceptor.attach(sub_16900,&#123;</span><br><span class="line">        onEnter:function(args)&#123;</span><br><span class="line">            this.arg1 = args[0];</span><br><span class="line">            this.arg2 = args[1];</span><br><span class="line">            this.arg3 = args[2];</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg1=&quot;,ptr(this.arg1).readCString());</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg2=&quot;,this.arg2);</span><br><span class="line">            console.log(&quot;sub_16900 onEnter: arg3=&quot;,ptr(this.arg3).readCString());</span><br><span class="line">        &#125;,</span><br><span class="line">        onLeave:function(retval)&#123;</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg1=&quot;,ptr(this.arg1).readCString());</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg2=&quot;,this.arg2);</span><br><span class="line">            console.log(&quot;sub_16900 onLeave: arg3=&quot;,hexdump(this.arg3));</span><br><span class="line">            //console.log(&quot;sub_16900 onLeave: ret =&quot;,ptr(retval).readCString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function main()</span><br><span class="line">&#123;</span><br><span class="line">    hook_java()</span><br><span class="line">    hook_native()</span><br><span class="line">&#125;</span><br><span class="line">setImmediate(main)</span><br></pre></td></tr></table></figure>
-<h2 id="L7：Frida-辅助分析非标准算法"><a href="#L7：Frida-辅助分析非标准算法" class="headerlink" title="L7：Frida 辅助分析非标准算法"></a>L7：Frida 辅助分析非标准算法</h2><h2 id="L8：IDA-Trace-辅助分析非标准算法"><a href="#L8：IDA-Trace-辅助分析非标准算法" class="headerlink" title="L8：IDA Trace 辅助分析非标准算法"></a>L8：IDA Trace 辅助分析非标准算法</h2><h2 id="L9：IDA-Trace辅助分析OOLVM混淆的非标准算法"><a href="#L9：IDA-Trace辅助分析OOLVM混淆的非标准算法" class="headerlink" title="L9：IDA Trace辅助分析OOLVM混淆的非标准算法"></a>L9：IDA Trace辅助分析OOLVM混淆的非标准算法</h2><p>后面三课的内容涉及的Frida用法不多，而且之前也都已经涉及到，后面有空了连同上一篇补充下细节。</p>
-<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><ol>
-<li>个人感觉Frida辅助分析OLLVM主要在于运行时HOOK获取到解密后的字符串，以及通过交叉引用获取到程序的参数。</li>
-</ol>
-<p>附件下载：<a href="samples.zip" target="_blank">链接</a></p>
-]]></content>
-      <categories>
-        <category>移动终端</category>
-      </categories>
-      <tags>
-        <tag>Frida</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>2021-03-01-使用Unicorn模拟运行破解简单的IOS-IPA-Crackme</title>
-    <url>/2021/03/01/2021-03-01-%E4%BD%BF%E7%94%A8Unicorn%E6%A8%A1%E6%8B%9F%E8%BF%90%E8%A1%8C%E7%A0%B4%E8%A7%A3%E7%AE%80%E5%8D%95%E7%9A%84IOS-IPA-Crackme/</url>
-    <content><![CDATA[<blockquote>
-<p>&ensp;&ensp;&ensp;&ensp;IPA是Apple程序应用文件iPhoneApplication的缩写。苹果手机上ios系统上安装开发的app，首先要将项目打包成ipa文件。利用IDA静态分析以及Unicorn的模拟执行功能，可以在没有ios调试环境的情况下对ios app开展静态分析以及模拟动态执行工作。
-</blockquote>
-<a id="more"></a>
-<h2 id="【步骤】"><a href="#【步骤】" class="headerlink" title="【步骤】"></a>【步骤】</h2><p>UnCrackable_Level1.ipa 为需要分析的目标程序，位置为测试虚拟机环境中的桌面文件夹，同目录下的wp文件夹中存放实验用的wp脚本。</p>
-<ol>
-<li>首先根据ipa包的文件格式获取其主程序文件，选择使用Winrar对ipa包进行解压，将其解压到默认桌面文件夹。</li>
-</ol>
-<div align="center">
-
-<p><img src="1.png" alt="1"></p>
-</div>
-得到Payload\UnCrackable Level 1.app目录中的主程序文件“UnCrackable Level 1”。
-
-<ol start="2">
-<li>使用桌面中的IDA程序打开“UnCrackable Level 1”，打开方式选择Math-O(arm64)方式。<div align="center">
-
-</li>
-</ol>
-<p><img src="2.png" alt="2"></p>
-</div>
-
-<ol start="3">
-<li><p>根据IDA识别的按钮点击事件的处理流程，可以定位到Flag字符串的处理函数。</p>
-<div align="center">
-
-<p><img src="3.png" alt="3"></p>
-</div>
-也可以通过字符串搜索方式定位到Flag的验证处理流程：
-<div align="center">
-
-<p><img src="4.png" alt="4"></p>
-</div>
-利用引用地址同样定位到buttonclick处理函数代码：
-<div align="center">
-
-<p><img src="5.png" alt="5"></p>
-</div>
-</li>
-<li><p>下面继续分析该函数的处理流程，使用F5获取伪代码显示。</p>
-<div align="center">
-
-<p><img src="6.png" alt="6">    </p>
-</div>
-分析处理流程为输入框中输入的Flag字符串与thelabel标签标识的字符串相比较，比较相等成功之后则弹出Flag验证正确的提示。
-</li>
-<li><p>实际上程序运行后是无法看到thelabel标签标识的字符串的，需要跟进程序中视图加载时对该标签的处理过程查看到标签实际的字符串值。使用IDA查看viewDidLoad函数的代码：</p>
-<div align="center">
-
-<p><img src="7.png" alt="7"></p>
-</div>
-可以看到thelabel标签的字符串值实际上是由sub_1000080D4函数处理后返回.同时可以看到程序中设置该标签为隐藏属性.
-</li>
-<li><p>跟进分析sub_1000080D4函数的实现过程。</p>
-<div align="center">
-
-<p><img src="8.png" alt="8"></p>
-</div>
-该函数功能为对字符串缓冲区逐字节进行运算赋值,最终返回运算完之后的字符串.
-</li>
-<li><p>因为直接通过静态分析得到最终返回的字符串值较为复杂,可以考虑使用Unicorn模拟执行的方式对sub_1000080D4函数进行仿真,并获取其最终返回的字符串。</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># encoding=utf8</span><br><span class="line">from unicorn import *</span><br><span class="line">from unicorn.arm64_const import *</span><br><span class="line"></span><br><span class="line">ImageBase = 0x0</span><br><span class="line">ImageSize = 0x100000</span><br><span class="line">StackBase = 0x200000</span><br><span class="line">StackSize = 0x100000</span><br><span class="line">StackTop = StackBase + StackSize - 0x10</span><br><span class="line"></span><br><span class="line">try:</span><br><span class="line">    mu = Uc(UC_ARCH_ARM64,UC_MODE_ARM)</span><br><span class="line">    mu.mem_map(ImageBase,ImageSize)</span><br><span class="line">    bin = open(&quot;UnCrackable Level 1&quot;,&quot;rb&quot;).read()</span><br><span class="line">    mu.mem_write(ImageBase,bin)</span><br><span class="line"></span><br><span class="line">    mu.mem_map(StackBase,StackSize)</span><br><span class="line">    mu.reg_write(UC_ARM64_REG_SP,StackTop)</span><br><span class="line"></span><br><span class="line">    target_begin = ImageBase + 0x240D4</span><br><span class="line">    target_end = ImageBase + 0x24154</span><br><span class="line">    mu.emu_start(target_begin,target_end)</span><br><span class="line">    print(&quot;Done...&quot;)</span><br><span class="line"></span><br><span class="line">    x0 = mu.reg_read(UC_ARM64_REG_X0)</span><br><span class="line">    result = mu.mem_read(x0,16)</span><br><span class="line">    print(&apos;Flag:&apos; + result.decode(&apos;utf-8&apos;))</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">except UcError as e:</span><br><span class="line">    print(&quot;ERROR:%s&quot; %e)</span><br></pre></td></tr></table></figure>
-<p>该段代码的主要功能为利用Unicorn申请代码缓存及栈空间,对指定的sub_1000080D4函数代码起始位置(0x240D4)和结束位置(0x24154)进行仿真,最终取回返回值也即是寄存器X0指向的内存空间.注意因为镜像申请的空间为自定义的基地址0,代码实际所在的位置需要进行确认,</p>
-<div align="center">
-
-<p><img src="9.png" alt="9"></p>
-</div></li>
-<li><p>将”UnCrackable Level 1”文件拷贝到wp脚本所在目录,并执行wp脚本获取返回字符串值,即为Flag字符串.</p>
-<div align="center">
-
-<p><img src="10.png" alt="10"></p>
-</div>
-
-</li>
-</ol>
-<h2 id="【总结】"><a href="#【总结】" class="headerlink" title="【总结】"></a>【总结】</h2><p>ios ipa逆向基础知识以及Unicorn框架的使用方法。</p>
-]]></content>
-      <categories>
-        <category>移动终端</category>
-      </categories>
-      <tags>
-        <tag>ios</tag>
       </tags>
   </entry>
   <entry>
