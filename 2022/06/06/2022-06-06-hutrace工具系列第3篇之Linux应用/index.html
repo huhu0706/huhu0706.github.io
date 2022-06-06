@@ -58,10 +58,10 @@
 <meta property="og:site_name" content="huhu&#39;s blog">
 <meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;%E5%9B%BE%E7%89%872.png">
-<meta property="og:updated_time" content="2022-06-05T07:03:20.137Z">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;%E5%9B%BE%E7%89%872.png">
+<meta property="og:updated_time" content="2022-06-06T13:15:20.916Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;%E5%9B%BE%E7%89%872.png">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;%E5%9B%BE%E7%89%872.png">
 
 <link rel="canonical" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/">
 
@@ -242,16 +242,10 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2022-06-06 14:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T14:00:00+08:00">2022-06-06</time>
+              <time title="创建时间：2022-06-06 14:00:00 / 修改时间：21:15:20" itemprop="dateCreated datePublished" datetime="2022-06-06T14:00:00+08:00">2022-06-06</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-05 15:03:20" itemprop="dateModified" datetime="2022-06-05T15:03:20+08:00">2022-06-05</time>
-              </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -281,7 +275,7 @@
         <center>
     <img style="border-radius: 0.3125em;
     box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src=2022-06-06-hutrace工具系列第3篇之Linux应用/图片1.png>
+    src=图片1.png>
     <br>
     <div style="color:orange; border-bottom: 1px solid #d9d9d9;
     display: inline-block;
@@ -307,7 +301,7 @@
 <p>开工：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ./hutrace -only_from_app -print_ret_addr -print_ins_info -- ./myproctest.out</span><br><span class="line">The returned value is 7774 In father process!! My PID is 7773</span><br><span class="line">The returned value is 0 In child process!! My PID is 7774</span><br></pre></td></tr></table></figure>
 <p>我们只看下子进程的记录日志：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8/%E5%9B%BE%E7%89%872.png" alt=""></p>
+<p><img src="%E5%9B%BE%E7%89%872.png" alt=""></p>
 <p>常规方式的进程创建没啥特别的，不再说了，可惜Linux上dynamorio不支持Windows上的-syswide_on功能。</p>
 <h2 id="3-Linux-Syscall调用记录"><a href="#3-Linux-Syscall调用记录" class="headerlink" title="3. Linux Syscall调用记录"></a>3. Linux Syscall调用记录</h2><p>上一篇中介绍的windows系统调用使用常见相对小众，Linux下就比较常见了，hutrace在linux系统上同样默认不记录syscall调用信息，而且不在hutrace.config中设置参数信息的话只打印系统调用名称，只有设置了参数信息才会打印系统调用的参数，实际使用时和打印API函数以及上一篇Window应用中介绍的使用方式类似，在hutrace.config配置文件中添加对应syscall的参数信息：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">hutrace.config文件中设置：</span><br><span class="line">int|syscall_read|LONG|__out hex^ARG2|int</span><br><span class="line">int|syscall_write|LONG|char *</span><br><span class="line">int|syscall_open|char *|LONG</span><br><span class="line"></span><br><span class="line">运行hutrace记录ls程序运行的syscall：</span><br><span class="line"># huhu @ huhu in ~/Desktop/my/build/bin64 [8:17:52] </span><br><span class="line">$ ./hutrace -only_from_app -print_ret_addr  -print_syscall -- /bin/ls -al</span><br></pre></td></tr></table></figure>

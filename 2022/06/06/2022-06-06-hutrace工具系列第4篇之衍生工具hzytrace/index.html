@@ -58,13 +58,13 @@
 <meta property="og:site_name" content="huhu&#39;s blog">
 <meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;hutrace的功能已经实现的比较全面了，dynamroio与pin虽然在对程序的分析处理上各有一定的优势，但是实际中测试下来dynamorio在Linux下的兼容性要比pin稍微差一点，存在一些无法用hutrace记录但pin可以追踪的情况，而且pin提供的接口功能也更丰富，故基于pin完成了大部分hutrac">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%872.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%873.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%874.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%875.png">
-<meta property="og:updated_time" content="2022-06-04T08:28:55.430Z">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%872.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%873.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%874.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%875.png">
+<meta property="og:updated_time" content="2022-06-06T13:15:31.292Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%872.png">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%872.png">
 
 <link rel="canonical" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/">
 
@@ -245,16 +245,10 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2022-06-06 15:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T15:00:00+08:00">2022-06-06</time>
+              <time title="创建时间：2022-06-06 15:00:00 / 修改时间：21:15:31" itemprop="dateCreated datePublished" datetime="2022-06-06T15:00:00+08:00">2022-06-06</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-04 16:28:55" itemprop="dateModified" datetime="2022-06-04T16:28:55+08:00">2022-06-04</time>
-              </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -284,7 +278,7 @@
         <center>
     <img style="border-radius: 0.3125em;
     box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src=2022-06-06-hutrace工具系列第4篇之衍生工具hzytrace/图片1.png>
+    src=图片1.png>
     <br>
     <div style="color:orange; border-bottom: 1px solid #d9d9d9;
     display: inline-block;
@@ -359,15 +353,15 @@
 <li><p>dump功能同样可以在不同运行地址状态指定相同地址范围的内存进行提取，dump的文件名结尾会进行累加，可以比对不同状态下内存状态信息改变情况。</p>
 </li>
 </ul>
-<h2 id="4-实例演示"><a href="#4-实例演示" class="headerlink" title="4. 实例演示"></a>4. 实例演示</h2><p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/%E5%9B%BE%E7%89%872.png" alt=""></p>
+<h2 id="4-实例演示"><a href="#4-实例演示" class="headerlink" title="4. 实例演示"></a>4. 实例演示</h2><p><img src="%E5%9B%BE%E7%89%872.png" alt=""></p>
 <h3 id="4-1-hide"><a href="#4-1-hide" class="headerlink" title="4.1 hide"></a>4.1 hide</h3><p>来看一个几年前qwb里ling博狗的例子“hide”，用了upx壳并且修改了一些upx标识，无法自动脱壳，程序本身使用了ptrace的PTRACE_TRACEME反调试（使用strace跟踪会退出），而且本身程序使用syscall完成读写、还使用了一处虚假的flag校验函数进行混淆，常规方式可以使用“catch syscall ptrace”逐步定位关键代码处，下面我们尝试使用hzytrace处理类似程序（hutrace虽然可以正常处理upx和PTRACE_TRACEME，但是这个程序无法正常trace，原因没有深入研究）。</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># huhu @ huhu in ~/Desktop/pin-3.5 [7:30:39] </span><br><span class="line">$ ./pin -t hzytrace.so -bbllog -- ./hide</span><br><span class="line">[INFO] Configuring Pintool</span><br><span class="line">[INFO] Starting instrumented program</span><br><span class="line"></span><br><span class="line">[INFO] Opening file</span><br><span class="line">./Results/2022_05_26_07_31_43//TRACER/hzytrace.hide.37360.0.1653568303.out</span><br><span class="line">Enter the flag:</span><br><span class="line">1234567890</span><br><span class="line">You are wrong</span><br></pre></td></tr></table></figure>
 <p>查看日志直接搜索输入的“1234567890”（trace的日志500m文件使用010edit秒搜）：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/%E5%9B%BE%E7%89%873.png" alt=""></p>
+<p><img src="%E5%9B%BE%E7%89%873.png" alt=""></p>
 <p>因为hzytrace仅对运行的代码进行记录，下面把这段内存进行dump拖进ida里查看完整的代码逻辑，在hzytrace_linux.config中设置执行到0x4c8eeb代码处时自动dump地址为0x400000代码处的内存（可设置关闭aslr固定内存地址）：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dump|0x4c8eeb|0x400000|0xca000</span><br></pre></td></tr></table></figure>
 <p>再次运行在对应的result日志目录生成内存dump文件，拖进ida，查看上述记录的日志中对应代码：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/%E5%9B%BE%E7%89%874.png" alt=""></p>
+<p><img src="%E5%9B%BE%E7%89%874.png" alt=""></p>
 <p>后面分析算法既可以ida静态，也可使用hzytrace的inslog参数追踪代码执行过程的寄存器及内存信息辅助分析算法，亦可使用gdb根据日志中的ptrace调用信息对其反调试进行绕过并继续调试，不再赘述。</p>
 <h3 id="4-2-bytepacker"><a href="#4-2-bytepacker" class="headerlink" title="4.2 bytepacker"></a>4.2 bytepacker</h3><p>这个程序来自某次分享的ctf赛题，使用双进程方式进行反调试，但是没有使用特别复杂的debugblock方式，所以依旧可以使用hzytrace进行指令流的trace（bbllog功能），但是无法使用inslog功能，全指令插桩会影响其执行流程：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ ./pin -t hzytrace.so -bbllog -- ./bytepacker</span><br><span class="line">[INFO] Configuring Pintool</span><br><span class="line">[INFO] Starting instrumented program</span><br><span class="line"></span><br><span class="line">[INFO] Opening file</span><br><span class="line">./Results/2022_05_29_08_46_16//TRACER/hzytrace.bytepacker.47505.0.1653831976.out</span><br><span class="line">[INFO] Fork New Process</span><br><span class="line">[INFO] Opening file</span><br><span class="line">./Results/2022_05_29_08_46_16//TRACER/hzytrace.bytepacker.47509.0.1653831976.out</span><br><span class="line">Show me the flag:</span><br><span class="line">&gt;&gt; 1234567890</span><br><span class="line">No, not this one.%</span><br></pre></td></tr></table></figure>
@@ -376,7 +370,7 @@
 <p>在hzytrace_linux.config中设置dump内存(关闭aslr的情况下，查看0x7fffe42f6360代码所在内存范围，确保内存地址固定)：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dump|0x7fffe42f6360|0x7fffe41f7000|0x1c0000</span><br></pre></td></tr></table></figure>
 <p>后续可以据此静态分析,同样也可以向上述hide一样对照trace日志中父进程对子进程的操作进行针对性的处理，只是不能支持inslog功能打印寄存器及引用的内存状态了，父进程的处理代码地址可简单定位如下：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace/%E5%9B%BE%E7%89%875.png" alt=""></p>
+<p><img src="%E5%9B%BE%E7%89%875.png" alt=""></p>
 <p>实际上像一些更复杂的debugblock代码等使用hzytrace处理子进程时也会崩溃，有的情况下可以通过pin提供的接口对其进行绕过，但是代价略大点，同样后续有好的方案了会进行更新。</p>
 <h2 id="5-总结"><a href="#5-总结" class="headerlink" title="5. 总结"></a>5. 总结</h2><p>前面的文章中提到hzytrace一个主要目的是为了应对linux平台下一些程序无法使用hutrace处理的问题，当然不止是上面提到的一些小众的ctf赛题，pin的接口相对更为丰富，hzytrace也只是相对hutrace稍微简化了下，功能整体来说保持一致。</p>
 <p>github地址：<a href="https://github.com/huhu0706/hzytrace" target="_blank" rel="noopener">https://github.com/huhu0706/hzytrace</a></p>

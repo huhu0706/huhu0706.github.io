@@ -58,16 +58,16 @@
 <meta property="og:site_name" content="huhu&#39;s blog">
 <meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;3.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;4.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;5.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;6.png">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;7.png">
-<meta property="og:updated_time" content="2022-06-05T14:39:09.942Z">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;3.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;4.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;5.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;6.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;7.png">
+<meta property="og:updated_time" content="2022-06-06T13:14:54.589Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
 
 <link rel="canonical" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/">
 
@@ -248,16 +248,10 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2022-06-06 13:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T13:00:00+08:00">2022-06-06</time>
+              <time title="创建时间：2022-06-06 13:00:00 / 修改时间：21:14:54" itemprop="dateCreated datePublished" datetime="2022-06-06T13:00:00+08:00">2022-06-06</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-05 22:39:09" itemprop="dateModified" datetime="2022-06-05T22:39:09+08:00">2022-06-05</time>
-              </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -284,7 +278,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/1.png" alt=""></p>
+        <p><img src="1.png" alt=""></p>
 <blockquote>
 <p>&ensp;&ensp;&ensp;&ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。
 </blockquote>
@@ -296,9 +290,9 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;drconfig.exe -reg EQNEDT32.EXE -syswide_on -c hutracelib.dll -only_from_app -print_ret_addr -print_ins_info -logdir C:\Users\admin\Desktop\bin\ -config C:\Users\admin\Desktop\bin\hutrace.config</span><br><span class="line">WARNING: on Windows 7+, syswide_on relaxes system security by removing certain code signing requirements</span><br></pre></td></tr></table></figure>
 <p>这里没有使用之前hutrace.exe直接启动Word程序，因为公式编辑器进程EQNEDT32.EXE是通过RPC方式启动，而dynamorio的追踪子进程功能只能捕捉默认的CreateProcess等方式启动的子进程，独立的EQNEDT32.EXE进程无法追踪，但是可以使用dynamorio的自动附加功能，使用dynamorio中自带的drconfig.exe为EQNEDT32.EXE进程注册启动时自动注入dynamorio插件。</p>
 <p>下面直接在测试环境使用word打开test.rtf文件，日志目录中生成的文件中我们只需要关注下面三个：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/2.png" alt=""></p>
+<p><img src="2.png" alt=""></p>
 <p>其中前两个是Shellcode执行记录的情况，而创建的傀儡进程EQNEDT32.EXE的trace日志文件huhu.EQNEDT32.EXE.02120.0000.log文件内容（从LoadlibraryA函数开始其实进程已经执行完主题功能，后面未严格处理漏洞现场环境导致进程崩溃退出了，msappid.exe功能简单只有一个弹框）：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/3.png" alt=""></p>
+<p><img src="3.png" alt=""></p>
 <p>Shellcode功能一览无遗，也比较简单，下面主要根据日志分析漏洞执行情况，搜索API执行情况，直接从trace的日志中API调用结果的最后开始向前追溯：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">//省略部分010edit搜索的结果</span><br><span class="line">Line 250203	8h	~~696~~ KERNEL32.dll!GlobalLock N:0x187d</span><br><span class="line">Line 250210	8h	~~696~~ KERNEL32.dll!GlobalUnlock N:0x187e</span><br><span class="line">Line 250227	8h	~~696~~ KERNEL32.dll!GlobalLock N:0x187f</span><br><span class="line">Line 250234	8h	~~696~~ KERNEL32.dll!GlobalUnlock N:0x1880</span><br><span class="line">Line 250622	8h	~~696~~ KERNEL32.dll!CreateProcessA N:0x1881  &lt;-------------这里</span><br><span class="line">Line 250664	8h	~~696~~ KERNEL32.dll!WaitForDebugEvent N:0x1882</span><br><span class="line">Line 250701	8h	~~696~~ KERNEL32.dll!GetThreadContext N:0x1883</span><br><span class="line">Line 250719	8h	~~696~~ KERNEL32.dll!VirtualProtectEx N:0x1884</span><br><span class="line">Line 250725	8h	~~696~~ KERNELBASE.dll!VirtualProtectEx N:0x1885</span><br><span class="line">Line 250770	8h	~~696~~ KERNEL32.dll!WriteProcessMemory N:0x1886</span><br><span class="line">Line 250776	8h	~~696~~ KERNELBASE.dll!WriteProcessMemory N:0x1887</span><br><span class="line">Line 250797	8h	~~696~~ KERNEL32.dll!SetThreadContext N:0x1888</span><br><span class="line">Line 250809	8h	~~696~~ KERNEL32.dll!DebugSetProcessKillOnExit N:0x1889</span><br><span class="line">Line 250822	8h	~~696~~ KERNEL32.dll!ContinueDebugEvent N:0x188a</span><br><span class="line">Line 250835	8h	~~696~~ KERNEL32.dll!DebugActiveProcessStop N:0x188b</span><br><span class="line">Line 250846	8h	~~696~~ KERNEL32.dll!ExitProcess N:0x188c</span><br></pre></td></tr></table></figure>
 <p>很明显漏洞触发后最先执行的既是CreateProcessA函数，双击定位到相应的位置：</p>
@@ -309,9 +303,9 @@
 <p>我们下面演示不用调试器、IDA分析的情况下，利用无脑全流程trace的方式分析该漏洞，通过记录的指令指令状态信息定位溢出点，首先根据溢出覆盖的返回地址信息：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">I0x411874|ret                                             	|	esp:0x12f1d0</span><br><span class="line">I0x402114|ret                                             	|	esp:0x12f1d4</span><br></pre></td></tr></table></figure>
 <p>日志文件中搜索0x12f1d0：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/4.png" alt=""></p>
+<p><img src="4.png" alt=""></p>
 <p>看到图中左侧框中的数据变化规律可以看出在循环处理栈中的数据，继续往上翻日志：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/5.png" alt=""></p>
+<p><img src="5.png" alt=""></p>
 <p>这不就找到溢出点位置了，后面可以再据此根据rtf文件结构、shellcode在rtf中的位置、搜索rtf数据在trace日志文件中的处理流程等等，探究漏洞成因，结合IDA的话其实基本也可以做到不用调试就能澄清漏洞细节了，这里我就不继续了。。。</p>
 <ul>
 <li>补充说明<br>使用drconfig.exe方式在程序启动时自动注入dynamorio插件默认是追踪msappid.exe子进程的，且对msappid.exe子进程来说设置的trace运行参数是一致的，如果想对子进程设置不同的trace参数，可以设置“ -ops “-no_follow_children””参数，然后再使用drconfig.exe再对msappid.exe子进程注册并设置trace参数。<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drconfig.exe -reg EQNEDT32.EXE -syswide_on -ops &quot;-no_follow_children&quot; -c hutracelib.dll -only_from_app -print_ret_addr -print_ins_info -logdir C:\Users\admin\Desktop\bin\ -config C:\Users\admin\Desktop\bin\hutrace.config</span><br></pre></td></tr></table></figure>
@@ -319,7 +313,7 @@
 </li>
 </ul>
 <h3 id="1-2-CVE-2018-4990-adobe-pdf-漏洞载荷分析"><a href="#1-2-CVE-2018-4990-adobe-pdf-漏洞载荷分析" class="headerlink" title="1.2 CVE-2018-4990 adobe pdf 漏洞载荷分析"></a>1.2 CVE-2018-4990 adobe pdf 漏洞载荷分析</h3><p>继续搞个pdf的洞简单分析下，首先关闭Adobe的沙盒保护：</p>
-<p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/6.png" alt=""></p>
+<p><img src="6.png" alt=""></p>
 <p>不会影响漏洞触发，但是开启该机制会影响hutrace的trace操作，关闭之后执行下述命令指定对漏洞模块EScript.api的追踪：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;hutrace.exe  -only_from_app  -print_ret_addr  -print_ins_info -trace_to_librarys EScript.api -- &quot;C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe&quot; C:\Users\admin\Desktop\CVE-2018-4990-modify.pdf</span><br></pre></td></tr></table></figure>
 <p>漏洞的Shellcode为一个简单的MessagexBox弹框，大概三分钟的时间形成了近20个记录的线程日志，其中最大的日志文件约1.9G，这还不包含寄存器等状态信息，首先搜索其API执行情况，从后往前查看或者直接搜索MessageBox：</p>
@@ -345,7 +339,7 @@
 <p>得到的日志中的syscall记录：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">~~880~~ S|syscall_NtAllocateVirtualMemory_21 N:0x268             //不设置对应参数类型默认只打印syscall的名称</span><br><span class="line"> and syscall_NtAllocateVirtualMemory return</span><br><span class="line">~~880~~ S|syscall_NtCreateEvent_69 N:0x269</span><br><span class="line"> and syscall_NtCreateEvent return</span><br><span class="line">~~880~~ S|syscall_NtQueryKey_19 N:0x26a</span><br><span class="line"> and syscall_NtQueryKey return</span><br><span class="line">~~880~~ S|syscall_NtCreateKey_26 N:0x26b</span><br><span class="line">    arg 0: 0x000000000022ef68 (type=void, size=0x0)</span><br><span class="line">    arg 1: 0x0000000000020019 (type=void, size=0x0)</span><br><span class="line">    arg 2: 0x000000000022ef88 (type=void, size=0x0)</span><br><span class="line">    arg 3: 0x0000000000000000 (type=void, size=0x0)</span><br><span class="line">    arg 4: 0x000000000022f330</span><br><span class="line"> and Struct Begin:</span><br><span class="line">    arg 0: 0xa (type=WORD, size=0x2)</span><br><span class="line">    arg 1: 0xc (type=WORD, size=0x2)</span><br><span class="line">    arg 2: 0x0 (type=int, size=0x4)</span><br><span class="line">    arg 3: Class (type=wchar_t*, size=0x0)</span><br><span class="line">and Struct End</span><br><span class="line"> (type=struct_ptr&#123;WORD.WORD.int.wchar*&#125;^NUM1*, size=0x1)</span><br><span class="line">    arg 5: 0x0000000000000000 (type=void, size=0x0)</span><br><span class="line"> and syscall_NtCreateKey return</span><br></pre></td></tr></table></figure>
 <p>在Windows上界面程序一般没必要开启syscall记录，非界面程序的记录需求也比较少，默认是记录程序中所有的syscall调用，不会过滤是否为目标程序本身或者系统函数中的调用，导致trace的日志量也会比较大。</p>
-<h2 id="4-任意地址HOOK：Windows平台hutrace插件编写"><a href="#4-任意地址HOOK：Windows平台hutrace插件编写" class="headerlink" title="4. 任意地址HOOK：Windows平台hutrace插件编写"></a>4. 任意地址HOOK：Windows平台hutrace插件编写</h2><p><img src="2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/7.png" alt=""></p>
+<h2 id="4-任意地址HOOK：Windows平台hutrace插件编写"><a href="#4-任意地址HOOK：Windows平台hutrace插件编写" class="headerlink" title="4. 任意地址HOOK：Windows平台hutrace插件编写"></a>4. 任意地址HOOK：Windows平台hutrace插件编写</h2><p><img src="7.png" alt=""></p>
 <p>调试时经常遇到需要对特定指令或数据进行运行时修改的情况，hutrace本身提供了一个简易patch的功能，但是对于一些复杂场景显得处理能力较弱，为了实现功能更强大的自定义代码注入功能，hutrace添加了插件功能，可基本实现在程序的任意运行状态修改程序运行信息，下面以一个固定VirtualAlloc内存申请基址的小需求为例，利用提供的hutrace的插件模板很容易即可实现。首先看一个演示的注入程序：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Users\admin\Desktop\bin&gt;hutrace.exe  -only_from_app  -print_ret_addr -print_ins_info -- inject.exe</span><br></pre></td></tr></table></figure>
 <p>主体功能为注入rundll32.exe弹出计算器的Shellcode（VirtualAllocEx在rundll32.exe内存空间申请0x800大小内存），为了演示，自身也加了一段申请0x1234大小的内存的代码：</p>
