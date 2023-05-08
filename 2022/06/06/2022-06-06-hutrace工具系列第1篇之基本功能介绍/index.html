@@ -50,23 +50,22 @@
   };
 </script>
 
-  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重">
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重点">
 <meta name="keywords" content="工具,调试器,dynamorio,hutrace">
 <meta property="og:type" content="article">
 <meta property="og:title" content="2022-06-06-hutrace工具系列第1篇之基本功能介绍">
 <meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;index.html">
 <meta property="og:site_name" content="huhu&#39;s blog">
-<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重点">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;1.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;3.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;4.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;5.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;6.png">
-<meta property="og:updated_time" content="2022-06-06T14:58:48.764Z">
+<meta property="og:updated_time" content="2023-05-08T14:37:45.580Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;1.png">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D&#x2F;2.png">
 
 <link rel="canonical" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC1%E7%AF%87%E4%B9%8B%E5%9F%BA%E6%9C%AC%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D/">
 
@@ -247,10 +246,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-06-06 12:00:00 / 修改时间：22:58:48" itemprop="dateCreated datePublished" datetime="2022-06-06T12:00:00+08:00">2022-06-06</time>
+              <time title="创建时间：2022-06-06 12:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T12:00:00+08:00">2022-06-06</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-05-08 22:37:45" itemprop="dateModified" datetime="2023-05-08T22:37:45+08:00">2023-05-08</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -288,8 +293,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><img src="1.png" alt=""></p>
-<blockquote>
+        <blockquote>
 <p>&ensp;&ensp;&ensp;&ensp;本系列文章预计分4篇介绍下hutrace以及hzytrace工具,前3篇主要介绍下hutrace基本功能以及不同应用场景使用示例，hutrace工具本身是基于drltrace开源项目开发，支持Windows+Linux平台，最后1篇会介绍hutrace的同款工具hzytrace，hzytrace是基于Pin开发完成hutrace大部分功能，但侧重点略有区别，虽然hzytrace也可以支持windows，但Windows上相应需求基本可全部由hutrace达成，且效率更高，故目前暂先完善了Linux平台下的hzytrace。利用hutrace、hzytrace在很多分析场景下甚至可以不需调试就可以完成分析目的，因为Linux上找到样例偏少，本篇基本功能介绍部分将主要以Windows为例介绍其功能，实际两个平台上功能基本一致（dynamorio本身是支持arm linux、arm android的、pin也支持macos，但我自己测试移植到对应平台还有些问题，需求比较小众，对应平台也有一些替代工具，暂也没来及继续深入研究）。
 </blockquote>
 <a id="more"></a>
@@ -549,7 +553,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>

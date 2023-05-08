@@ -50,16 +50,16 @@
   };
 </script>
 
-  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公">
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公开的样例较少，内容偏少一点。">
 <meta name="keywords" content="工具,调试器,dynamorio,hutrace,Linux">
 <meta property="og:type" content="article">
 <meta property="og:title" content="2022-06-06-hutrace工具系列第3篇之Linux应用">
 <meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;index.html">
 <meta property="og:site_name" content="huhu&#39;s blog">
-<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公开的样例较少，内容偏少一点。">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;%E5%9B%BE%E7%89%872.png">
-<meta property="og:updated_time" content="2022-06-06T14:59:06.018Z">
+<meta property="og:updated_time" content="2023-05-08T14:37:48.985Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC3%E7%AF%87%E4%B9%8BLinux%E5%BA%94%E7%94%A8&#x2F;%E5%9B%BE%E7%89%872.png">
 
@@ -242,10 +242,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-06-06 14:00:00 / 修改时间：22:59:06" itemprop="dateCreated datePublished" datetime="2022-06-06T14:00:00+08:00">2022-06-06</time>
+              <time title="创建时间：2022-06-06 14:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T14:00:00+08:00">2022-06-06</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-05-08 22:37:48" itemprop="dateModified" datetime="2023-05-08T22:37:48+08:00">2023-05-08</time>
+              </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -272,18 +278,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <center>
-    <img style="border-radius: 0.3125em;
-    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src=图片1.png>
-    <br>
-    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
-    display: inline-block;
-    color: #999;
-    padding: 2px;"></div>
-</center>
-
-<blockquote>
+        <blockquote>
 <p>&ensp;&ensp;&ensp;&ensp;Linux上常用程序记录工具有strace、ltrace等，能够记录到程序的系统调用以及API函数调用信息，但是均无法得到进一步的调用位置等，hutrace则同时利用dynamorio实现了基本块以及指令状态等的记录，功能与Windows平台保持一致，本文仅对与win有差异的部分进行简单介绍，且Linux平台能公开的样例较少，内容偏少一点。
 </blockquote>
 <a id="more"></a>
@@ -451,7 +446,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>

@@ -50,19 +50,19 @@
   };
 </script>
 
-  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;hutrace的功能已经实现的比较全面了，dynamroio与pin虽然在对程序的分析处理上各有一定的优势，但是实际中测试下来dynamorio在Linux下的兼容性要比pin稍微差一点，存在一些无法用hutrace记录但pin可以追踪的情况，而且pin提供的接口功能也更丰富，故基于pin完成了大部分hutrac">
-<meta name="keywords" content="工具,调试器,hutrace,Linux,pin,hzytrace">
+  <meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;hutrace的功能已经实现的比较全面了，dynamroio与pin虽然在对程序的分析处理上各有一定的优势，但是实际中测试下来dynamorio在Linux下的兼容性要比pin稍微差一点，存在一些无法用hutrace记录但pin可以追踪的情况，而且pin提供的接口功能也更丰富，故基于pin完成了大部分hutrace的功能，也即是下面要介绍的hzyt">
+<meta name="keywords" content="工具,调试器,hutrace,pin,hzytrace,Linux">
 <meta property="og:type" content="article">
 <meta property="og:title" content="2022-06-06-hutrace工具系列第4篇之衍生工具hzytrace">
 <meta property="og:url" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;index.html">
 <meta property="og:site_name" content="huhu&#39;s blog">
-<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;hutrace的功能已经实现的比较全面了，dynamroio与pin虽然在对程序的分析处理上各有一定的优势，但是实际中测试下来dynamorio在Linux下的兼容性要比pin稍微差一点，存在一些无法用hutrace记录但pin可以追踪的情况，而且pin提供的接口功能也更丰富，故基于pin完成了大部分hutrac">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;hutrace的功能已经实现的比较全面了，dynamroio与pin虽然在对程序的分析处理上各有一定的优势，但是实际中测试下来dynamorio在Linux下的兼容性要比pin稍微差一点，存在一些无法用hutrace记录但pin可以追踪的情况，而且pin提供的接口功能也更丰富，故基于pin完成了大部分hutrace的功能，也即是下面要介绍的hzyt">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%872.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%873.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%874.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%875.png">
-<meta property="og:updated_time" content="2022-06-06T14:57:11.255Z">
+<meta property="og:updated_time" content="2023-05-08T14:37:47.345Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC4%E7%AF%87%E4%B9%8B%E8%A1%8D%E7%94%9F%E5%B7%A5%E5%85%B7hzytrace&#x2F;%E5%9B%BE%E7%89%872.png">
 
@@ -245,10 +245,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-06-06 15:00:00 / 修改时间：22:57:11" itemprop="dateCreated datePublished" datetime="2022-06-06T15:00:00+08:00">2022-06-06</time>
+              <time title="创建时间：2022-06-06 15:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T15:00:00+08:00">2022-06-06</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-05-08 22:37:47" itemprop="dateModified" datetime="2023-05-08T22:37:47+08:00">2023-05-08</time>
+              </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -275,18 +281,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <center>
-    <img style="border-radius: 0.3125em;
-    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);" 
-    src=图片1.png>
-    <br>
-    <div style="color:orange; border-bottom: 1px solid #d9d9d9;
-    display: inline-block;
-    color: #999;
-    padding: 2px;"></div>
-</center>
-
-<blockquote>
+        <blockquote>
 <p>&ensp;&ensp;&ensp;&ensp;hutrace的功能已经实现的比较全面了，dynamroio与pin虽然在对程序的分析处理上各有一定的优势，但是实际中测试下来dynamorio在Linux下的兼容性要比pin稍微差一点，存在一些无法用hutrace记录但pin可以追踪的情况，而且pin提供的接口功能也更丰富，故基于pin完成了大部分hutrace的功能，也即是下面要介绍的hzytrace工具。hzytrace目前仅支持linux平台，windows平台上基于dynamrio的hutrace在效率、兼容性上均优于pin，暂时就还没完善window下的hzytrace。
 </blockquote>
 <a id="more"></a>
@@ -386,9 +381,9 @@
               <a href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag"># 工具</a>
               <a href="/tags/%E8%B0%83%E8%AF%95%E5%99%A8/" rel="tag"># 调试器</a>
               <a href="/tags/hutrace/" rel="tag"># hutrace</a>
-              <a href="/tags/Linux/" rel="tag"># Linux</a>
               <a href="/tags/pin/" rel="tag"># pin</a>
               <a href="/tags/hzytrace/" rel="tag"># hzytrace</a>
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
           </div>
 
         
@@ -503,7 +498,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>

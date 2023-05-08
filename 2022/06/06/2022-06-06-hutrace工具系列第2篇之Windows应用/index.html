@@ -58,16 +58,15 @@
 <meta property="og:site_name" content="huhu&#39;s blog">
 <meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;3.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;4.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;5.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;6.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;7.png">
-<meta property="og:updated_time" content="2022-06-06T14:57:45.794Z">
+<meta property="og:updated_time" content="2023-05-08T14:37:51.299Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;1.png">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;huhu0706.github.io&#x2F;2022&#x2F;06&#x2F;06&#x2F;2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8&#x2F;2.png">
 
 <link rel="canonical" href="https://huhu0706.github.io/2022/06/06/2022-06-06-hutrace%E5%B7%A5%E5%85%B7%E7%B3%BB%E5%88%97%E7%AC%AC2%E7%AF%87%E4%B9%8BWindows%E5%BA%94%E7%94%A8/">
 
@@ -248,10 +247,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-06-06 13:00:00 / 修改时间：22:57:45" itemprop="dateCreated datePublished" datetime="2022-06-06T13:00:00+08:00">2022-06-06</time>
+              <time title="创建时间：2022-06-06 13:00:00" itemprop="dateCreated datePublished" datetime="2022-06-06T13:00:00+08:00">2022-06-06</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-05-08 22:37:51" itemprop="dateModified" datetime="2023-05-08T22:37:51+08:00">2023-05-08</time>
+              </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -278,8 +283,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><img src="1.png" alt=""></p>
-<blockquote>
+        <blockquote>
 <p>&ensp;&ensp;&ensp;&ensp;上一篇主要介绍hutrace的各个看着花里胡哨的功能，这里结合一些漏洞、样本的实例进行分析，日常工作见到的一些测试用例不方便公开，很多程序来自网上搜集，演示效果还不够好，而且本文主要目的是介绍hutrace功能用于辅助分析，对于用例的漏洞成因等不再介绍，暂时也确实没足够精力深入分析这些测试样例，网上也已经有比较多的文章了。。
 </blockquote>
 <a id="more"></a>
@@ -506,7 +510,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2022</span>
+  <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
